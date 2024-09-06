@@ -1,0 +1,10 @@
+{
+  "name": "Dynamic Fog",
+  "version": "1.0.0",
+  "manifest_version": 1,
+  "author": "Owlbear Rodeo",
+  "homepage_url": "https://extensions.owlbear.rodeo/dynamic-fog",
+  "icon": "/logo.png",
+  "description": "Add walls, doors and lights for a simple dynamic fog experience",
+  "background_url": "/background.html"
+}
