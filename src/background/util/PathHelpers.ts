@@ -17,15 +17,18 @@ import {
 } from "@owlbear-rodeo/sdk";
 import { Drawing } from "../drawing";
 
-export interface PathIntersection {
-  /** The point of intersection */
-  point: Vector2;
-  /** Distance to the point */
-  distance: number;
+export interface ContourMarker {
   /** The distance on the contour */
   contourDistance: number;
   /** The index of the contour  */
   contourIndex: number;
+}
+
+export interface PathIntersection extends ContourMarker {
+  /** The point of intersection */
+  point: Vector2;
+  /** Distance to the point */
+  distance: number;
 }
 
 export class PathHelpers {
@@ -208,6 +211,39 @@ export class PathHelpers {
       contourDistance: bestLength,
       contourIndex: bestContour,
     };
+  }
+
+  static getCommandsBetween(
+    CanvasKit: CanvasKit,
+    skPath: SkPath,
+    start: ContourMarker,
+    end: ContourMarker
+  ): PathCommand[] | null {
+    if (start.contourIndex !== end.contourIndex) {
+      console.warn("Unable to update subpath across contours");
+      return null;
+    }
+    const iter = new CanvasKit.ContourMeasureIter(skPath, false, 1);
+    let measure = iter.next();
+    let i = 0;
+    while (measure !== null) {
+      // Find the correct contour
+      if (i !== start.contourIndex) {
+        measure = iter.next();
+        i++;
+      } else {
+        const segment = measure.getSegment(
+          Math.min(start.contourDistance, end.contourDistance),
+          Math.max(start.contourDistance, end.contourDistance),
+          true
+        );
+
+        const commands = PathHelpers.skPathToPathCommands(segment);
+        segment.delete();
+        return commands;
+      }
+    }
+    return null;
   }
 
   /**

@@ -1,8 +1,9 @@
 import OBR, { Item } from "@owlbear-rodeo/sdk";
 import CanvasKitInit, { CanvasKit } from "canvaskit-wasm/bin/full/canvaskit";
 import wasm from "canvaskit-wasm/bin/full/canvaskit.wasm?url";
-import { clear, reconcile } from "./reconcile";
-import { createMenu } from "../menu/createMenu";
+import { clearWalls, reconcileWalls } from "./reconcileWalls";
+import { createLightMenu } from "./createLightMenu";
+import { createDoorMode } from "./createDoorMode";
 
 async function waitUntilOBRReady() {
   return new Promise<void>((resolve) => {
@@ -17,7 +18,8 @@ async function init() {
   await waitUntilOBRReady();
   OBR.scene.onReadyChange((ready) => handleSceneReady(ready, CanvasKit));
   OBR.scene.isReady().then((ready) => handleSceneReady(ready, CanvasKit));
-  createMenu();
+  createLightMenu();
+  createDoorMode(CanvasKit);
 }
 
 let sceneSubscriptions: VoidFunction[] = [];
@@ -34,12 +36,12 @@ async function handleSceneReady(ready: boolean, CanvasKit: CanvasKit) {
       OBR.scene.items.onChange((items) => handleItemsChange(items, CanvasKit))
     );
   } else {
-    clear();
+    clearWalls();
   }
 }
 
 function handleItemsChange(items: Item[], CanvasKit: CanvasKit) {
-  reconcile(items, CanvasKit);
+  reconcileWalls(items, CanvasKit);
 }
 
 init();

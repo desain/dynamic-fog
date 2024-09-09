@@ -12,7 +12,7 @@ import { WallHelpers } from "./util/WallHelpers";
 let prevFogDrawings: Record<string, Drawing> = {};
 let prevWalls: Record<string, Wall[]> = {};
 
-export async function reconcile(items: Item[], CanvasKit: CanvasKit) {
+export async function reconcileWalls(items: Item[], CanvasKit: CanvasKit) {
   const addedDrawings: Drawing[] = [];
   const deletedDrawings = new Set<string>([...Object.keys(prevFogDrawings)]);
   const updatedDrawings: Drawing[] = [];
@@ -94,7 +94,7 @@ export async function reconcile(items: Item[], CanvasKit: CanvasKit) {
   });
 }
 
-export function clear() {
+export function clearWalls() {
   prevFogDrawings = {};
   prevWalls = {};
 }

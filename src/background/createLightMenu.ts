@@ -1,6 +1,7 @@
 import OBR, { buildLight } from "@owlbear-rodeo/sdk";
+import { getPluginId } from "./util/getPluginId";
 
-export function createMenu() {
+export function createLightMenu() {
   OBR.contextMenu.create({
     icons: [
       {
@@ -9,12 +10,11 @@ export function createMenu() {
         filter: {},
       },
     ],
-    id: "test",
+    id: getPluginId("light-menu"),
     async onClick(context) {
       const item = context.items[0];
       const light = buildLight()
         .position(item.position)
-        .falloff(0)
         .attachedTo(item.id)
         .build();
       OBR.scene.local.addItems([light]);
