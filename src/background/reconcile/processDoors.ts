@@ -1,6 +1,6 @@
-import { Drawing } from "../drawing";
+import { Drawing } from "../../types/Drawing";
 import { CanvasKit, Path as SkPath } from "canvaskit-wasm";
-import { Door } from "../door";
+import { Door } from "../../types/Door";
 import { getMetadata } from "../util/getMetadata";
 import { getPluginId } from "../util/getPluginId";
 import { PathHelpers } from "../util/PathHelpers";
@@ -14,6 +14,7 @@ interface DoorPath {
   parent: string;
 }
 
+// A mapping of parent IDs to doors attached to those parents
 let prevDoors: Record<string, DoorPath[]> = {};
 
 export function processDoors(

@@ -1,5 +1,5 @@
 import { CanvasKit, Path as SkPath } from "canvaskit-wasm";
-import { Drawing } from "../drawing";
+import { Drawing } from "../../types/Drawing";
 import { PathHelpers } from "./PathHelpers";
 import {
   Command,

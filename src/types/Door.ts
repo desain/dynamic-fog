@@ -1,4 +1,4 @@
-import { ContourMarker } from "./util/PathHelpers";
+import { ContourMarker } from "../background/util/PathHelpers";
 
 export interface Door {
   open: boolean;

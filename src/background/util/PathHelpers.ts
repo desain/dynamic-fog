@@ -15,7 +15,7 @@ import {
   isPath,
   isLine,
 } from "@owlbear-rodeo/sdk";
-import { Drawing } from "../drawing";
+import { Drawing } from "../../types/Drawing";
 
 export interface ContourMarker {
   /** The distance on the contour */

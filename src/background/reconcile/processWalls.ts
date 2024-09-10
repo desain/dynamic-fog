@@ -1,8 +1,9 @@
 import OBR, { buildWall, isWall, Vector2, Wall } from "@owlbear-rodeo/sdk";
-import { Drawing } from "../drawing";
+import { Drawing } from "../../types/Drawing";
 import { CanvasKit, Path as SkPath } from "canvaskit-wasm";
 import { WallHelpers } from "../util/WallHelpers";
 
+// A mapping of parent IDs to walls attached to those parents
 let prevWalls: Record<string, Wall[]> = {};
 
 export async function processWalls(

@@ -7,12 +7,12 @@ import OBR, {
   ToolEvent,
   Vector2,
 } from "@owlbear-rodeo/sdk";
-import { Drawing, isDrawing } from "./drawing";
+import { Drawing, isDrawing } from "../types/Drawing";
 import { CanvasKit, Path as SkPath } from "canvaskit-wasm";
 import { PathHelpers, PathIntersection } from "./util/PathHelpers";
 import { inverseTransformPoint, transformPoint } from "./util/math";
 import { getPluginId } from "./util/getPluginId";
-import { Door } from "./door";
+import { Door } from "../types/Door";
 import { getMetadata } from "./util/getMetadata";
 
 type DoorIntersection = PathIntersection & { world: Vector2 };
@@ -249,6 +249,9 @@ export function createDoorMode(CanvasKit: CanvasKit) {
       }
       if (subpathId) {
         toDelete.push(subpathId);
+      }
+      if (startId) {
+        toDelete.push(startId);
       }
       OBR.scene.local.deleteItems(toDelete);
       wallVisuals = [];
