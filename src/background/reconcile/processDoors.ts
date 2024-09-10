@@ -4,94 +4,122 @@ import { Door } from "../door";
 import { getMetadata } from "../util/getMetadata";
 import { getPluginId } from "../util/getPluginId";
 import { PathHelpers } from "../util/PathHelpers";
-import { isShape } from "@owlbear-rodeo/sdk";
+import { MathM } from "@owlbear-rodeo/sdk";
+import { getDrawing } from "./reconcile";
 
-interface VisualDoor {
+interface DoorPath {
   base: Door;
+  // Current stroked door in world space
   skPath: SkPath;
   parent: string;
 }
 
-let prevDoors: Record<string, VisualDoor[]> = {};
+let prevDoors: Record<string, DoorPath[]> = {};
 
 export function processDoors(
   addedDrawings: Drawing[],
   deletedDrawings: Set<string>,
   updatedDrawings: Drawing[],
   CanvasKit: CanvasKit
-): [VisualDoor[], VisualDoor[], VisualDoor[], Door[]] {
-  const deletedDoors: VisualDoor[] = [];
+) {
+  const deletedDoors: DoorPath[] = [];
   for (const id of deletedDrawings) {
     if (id in prevDoors) {
       const doors = prevDoors[id];
       deletedDoors.push(...doors);
+
+      // Delete door paths
+      for (const visual of doors) {
+        visual.skPath.delete();
+      }
     }
     delete prevDoors[id];
   }
 
-  const addedDoors: VisualDoor[] = [];
+  const addedDoors: DoorPath[] = [];
   for (const drawing of addedDrawings) {
-    const doors = drawingToDoors(drawing, CanvasKit);
+    const doors = drawingToDoorPaths(drawing, CanvasKit);
     addedDoors.push(...doors);
     prevDoors[drawing.id] = doors;
   }
 
-  const updatedDoors: VisualDoor[] = [];
+  const updatedDoors: DoorPath[] = [];
   const doorUpdates: Door[] = [];
   for (const drawing of updatedDrawings) {
-    if (drawing.id in prevDoors) {
-      const doors = prevDoors[drawing.id];
-      const nextDoors = getMetadata<Door[]>(
-        drawing.metadata,
-        getPluginId("doors"),
-        []
-      );
-      if (doors.length < nextDoors.length) {
-        // Need to add more doors as there are new ones
-        for (let i = doors.length - 1; i < nextDoors.length; i++) {
-          const door = nextDoors[i];
-          const visual = doorToVisual(drawing, CanvasKit, door);
-          if (visual) {
-            doors.push(visual);
-            addedDoors.push(visual);
-          }
-        }
-      } else if (doors.length > nextDoors.length) {
-        // Need to remove doors as there are less
-        const numRemoved = doors.length - nextDoors.length;
-        const toDelete = doors.splice(doors.length - numRemoved, numRemoved);
-        deletedDoors.push(...toDelete);
-      }
+    if (!(drawing.id in prevDoors)) {
+      continue;
+    }
+    const doors = prevDoors[drawing.id];
+    const nextDoors = getMetadata<Door[]>(
+      drawing.metadata,
+      getPluginId("doors"),
+      []
+    );
 
-      // Update remaining doors
-      for (let i = 0; i < doors.length; i++) {
-        const door = doors[i];
-        const nextDoor = nextDoors[i];
-        updatedDoors.push(door);
-        doorUpdates.push(nextDoor);
-        door.base = nextDoor;
+    if (doors.length < nextDoors.length) {
+      // Need to add more doors as there are new ones
+      for (let i = doors.length; i < nextDoors.length; i++) {
+        const door = nextDoors[i];
+        const visual = doorToDoorPath(drawing, CanvasKit, door);
+        if (visual) {
+          doors.push(visual);
+          addedDoors.push(visual);
+        }
+      }
+    } else if (doors.length > nextDoors.length) {
+      // Need to remove doors as there are less
+      const numRemoved = doors.length - nextDoors.length;
+      const toDelete = doors.splice(doors.length - numRemoved, numRemoved);
+      deletedDoors.push(...toDelete);
+
+      // Delete door paths
+      for (const visual of toDelete) {
+        visual.skPath.delete();
+      }
+    }
+
+    // Update remaining doors
+    for (let i = 0; i < doors.length; i++) {
+      const door = doors[i];
+      const nextDoor = nextDoors[i];
+      updatedDoors.push(door);
+      doorUpdates.push(nextDoor);
+
+      // Update door values
+      door.base = nextDoor;
+      const drawing = getDrawing(door.parent);
+      const nextSkPath = drawing && getDoorSkPath(drawing, CanvasKit, nextDoor);
+      if (nextSkPath) {
+        door.skPath.delete();
+        door.skPath = nextSkPath;
       }
     }
   }
-
-  return [addedDoors, deletedDoors, updatedDoors, doorUpdates];
 }
 
 export function resetDoors() {
+  for (const doors of Object.values(prevDoors)) {
+    for (const door of doors) {
+      door.skPath.delete();
+    }
+  }
   prevDoors = {};
 }
 
-export function getDoorPaths() {
+export function getDoorSkPaths() {
   return Object.values(prevDoors)
     .flat()
     .map((visual) => visual.skPath);
 }
 
-function drawingToDoors(drawing: Drawing, CanvasKit: CanvasKit): VisualDoor[] {
-  const visuals: VisualDoor[] = [];
+function drawingToDoorPaths(
+  drawing: Drawing,
+  CanvasKit: CanvasKit
+): DoorPath[] {
+  const visuals: DoorPath[] = [];
   const doors = getMetadata<Door[]>(drawing.metadata, getPluginId("doors"), []);
   for (const door of doors) {
-    const visual = doorToVisual(drawing, CanvasKit, door);
+    const visual = doorToDoorPath(drawing, CanvasKit, door);
     if (!visual) {
       continue;
     }
@@ -100,11 +128,23 @@ function drawingToDoors(drawing: Drawing, CanvasKit: CanvasKit): VisualDoor[] {
   return visuals;
 }
 
-export function doorToVisual(
+function doorToDoorPath(
   drawing: Drawing,
   CanvasKit: CanvasKit,
   door: Door
-): VisualDoor | null {
+): DoorPath | null {
+  const skPath = getDoorSkPath(drawing, CanvasKit, door);
+  if (!skPath) {
+    return null;
+  }
+  return {
+    base: door,
+    skPath: skPath,
+    parent: drawing.id,
+  };
+}
+
+function getDoorSkPath(drawing: Drawing, CanvasKit: CanvasKit, door: Door) {
   const skPath = PathHelpers.drawingToSkPath(drawing, CanvasKit);
   if (!skPath) {
     return null;
@@ -120,20 +160,15 @@ export function doorToVisual(
     return null;
   }
   segment.stroke({
-    cap: isShape(drawing)
-      ? CanvasKit.StrokeCap.Square
-      : CanvasKit.StrokeCap.Round,
-    join: isShape(drawing)
-      ? CanvasKit.StrokeJoin.Miter
-      : CanvasKit.StrokeJoin.Round,
     // TODO: Use grid stroke width instead
     // TODO: Check with zero width
     // Add a buffer to account for the segmentation of curves
-    width: drawing.style.strokeWidth + 0.25,
+    width: drawing.style.strokeWidth + 1,
   });
-  return {
-    base: door,
-    skPath: segment,
-    parent: drawing.id,
-  };
+
+  // Transform segment into world space
+  const transform = MathM.fromItem(drawing);
+  segment.transform(...transform);
+
+  return segment;
 }

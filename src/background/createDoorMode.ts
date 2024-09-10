@@ -289,6 +289,7 @@ export function createDoorMode(CanvasKit: CanvasKit) {
           doorPaths.push(subpath);
           wallVisuals.push(subpath.id);
         }
+        skPath.delete();
       }
       if (doorPaths.length > 0) {
         await OBR.scene.local.addItems(doorPaths);
@@ -300,5 +301,6 @@ export function createDoorMode(CanvasKit: CanvasKit) {
         filter: {},
       },
     ],
+    shortcut: "O",
   });
 }

@@ -1,7 +1,13 @@
 import { CanvasKit, Path as SkPath } from "canvaskit-wasm";
 import { Drawing } from "../drawing";
 import { PathHelpers } from "./PathHelpers";
-import { Command, isShape, PathCommand, Vector2 } from "@owlbear-rodeo/sdk";
+import {
+  Command,
+  isShape,
+  MathM,
+  PathCommand,
+  Vector2,
+} from "@owlbear-rodeo/sdk";
 
 export class WallHelpers {
   /**
@@ -30,9 +36,13 @@ export class WallHelpers {
       width: drawing.style.strokeWidth,
     });
 
+    // Apply door subtractions in world space
+    const transform = MathM.fromItem(drawing);
+    skPath?.transform(...transform);
     for (const door of doors) {
       skPath?.op(door, CanvasKit.PathOp.Difference);
     }
+    skPath?.transform(...MathM.inverse(transform));
 
     const commands = skPath && PathHelpers.skPathToPathCommands(skPath);
     skPath?.delete();

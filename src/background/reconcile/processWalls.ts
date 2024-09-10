@@ -1,17 +1,17 @@
-import { buildWall, Vector2, Wall } from "@owlbear-rodeo/sdk";
+import OBR, { buildWall, isWall, Vector2, Wall } from "@owlbear-rodeo/sdk";
 import { Drawing } from "../drawing";
 import { CanvasKit, Path as SkPath } from "canvaskit-wasm";
 import { WallHelpers } from "../util/WallHelpers";
 
 let prevWalls: Record<string, Wall[]> = {};
 
-export function processWalls(
+export async function processWalls(
   addedDrawings: Drawing[],
   deletedDrawings: Set<string>,
   updatedDrawings: Drawing[],
   doors: SkPath[],
   CanvasKit: CanvasKit
-): [Wall[], string[], Wall[], Vector2[][]] {
+) {
   const deletedWalls: string[] = [];
   for (const id of deletedDrawings) {
     if (id in prevWalls) {
@@ -32,36 +32,56 @@ export function processWalls(
   const updatedWalls: Wall[] = [];
   const wallUpdates: Vector2[][] = [];
   for (const drawing of updatedDrawings) {
-    if (drawing.id in prevWalls) {
-      const walls = prevWalls[drawing.id];
-      const contours = WallHelpers.drawingToContours(drawing, CanvasKit, doors);
-      if (walls.length < contours.length) {
-        // Need to add more walls as there are new contours
-        for (let i = walls.length - 1; i < contours.length; i++) {
-          const contour = contours[i];
-          const wall = contourToWall(drawing, contour);
-          walls.push(wall);
-          addedWalls.push(wall);
-        }
-      } else if (walls.length > contours.length) {
-        // Need to remove walls as there are less contours
-        const numRemoved = walls.length - contours.length;
-        const toDelete = walls.splice(walls.length - numRemoved, numRemoved);
-        deletedWalls.push(...toDelete.map((wall) => wall.id));
-      }
-
-      // Update remaining walls
-      for (let i = 0; i < walls.length; i++) {
-        const wall = walls[i];
+    if (!(drawing.id in prevWalls)) {
+      continue;
+    }
+    const walls = prevWalls[drawing.id];
+    const contours = WallHelpers.drawingToContours(drawing, CanvasKit, doors);
+    if (walls.length < contours.length) {
+      // Need to add more walls as there are new contours
+      for (let i = walls.length; i < contours.length; i++) {
         const contour = contours[i];
-        updatedWalls.push(wall);
-        wallUpdates.push(contour);
-        wall.points = contour;
+        const wall = contourToWall(drawing, contour);
+        walls.push(wall);
+        addedWalls.push(wall);
       }
+    } else if (walls.length > contours.length) {
+      // Need to remove walls as there are less contours
+      const numRemoved = walls.length - contours.length;
+      const toDelete = walls.splice(walls.length - numRemoved, numRemoved);
+      deletedWalls.push(...toDelete.map((wall) => wall.id));
+    }
+
+    // Update remaining walls
+    for (let i = 0; i < walls.length; i++) {
+      const prev = walls[i];
+      const contour = contours[i];
+      updatedWalls.push(prev);
+      wallUpdates.push(contour);
+      walls[i] = {
+        ...prev,
+        points: contour,
+      };
     }
   }
 
-  return [addedWalls, deletedWalls, updatedWalls, wallUpdates];
+  if (deletedWalls.length > 0) {
+    await OBR.scene.local.deleteItems(deletedWalls);
+  }
+  if (addedWalls.length > 0) {
+    await OBR.scene.local.addItems(addedWalls);
+  }
+  if (updatedWalls.length > 0) {
+    await OBR.scene.local.updateItems(updatedWalls, (walls) => {
+      for (let i = 0; i < walls.length; i++) {
+        const points = wallUpdates[i];
+        const wall = walls[i];
+        if (wall && points && isWall(wall)) {
+          wall.points = points;
+        }
+      }
+    });
+  }
 }
 
 export function resetWalls() {
