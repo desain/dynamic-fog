@@ -1,7 +1,7 @@
-import { CanvasKit } from "canvaskit-wasm";
+import { CanvasKit, Path as SkPath } from "canvaskit-wasm";
 import { Drawing } from "../drawing";
 import { PathHelpers } from "./PathHelpers";
-import { Command, PathCommand, Vector2 } from "@owlbear-rodeo/sdk";
+import { Command, isShape, PathCommand, Vector2 } from "@owlbear-rodeo/sdk";
 
 export class WallHelpers {
   /**
@@ -14,16 +14,34 @@ export class WallHelpers {
   static drawingToContours(
     drawing: Drawing,
     CanvasKit: CanvasKit,
+    doors: SkPath[],
     sampleDistance = 10
   ): Vector2[][] {
     const skPath = PathHelpers.drawingToSkPath(drawing, CanvasKit);
-    if (!skPath) {
+    skPath?.stroke({
+      cap: isShape(drawing)
+        ? CanvasKit.StrokeCap.Square
+        : CanvasKit.StrokeCap.Round,
+      join: isShape(drawing)
+        ? CanvasKit.StrokeJoin.Miter
+        : CanvasKit.StrokeJoin.Round,
+      // TODO: Use grid stroke width instead
+      // TODO: Check with zero width
+      width: drawing.style.strokeWidth,
+    });
+
+    for (const door of doors) {
+      skPath?.op(door, CanvasKit.PathOp.Difference);
+    }
+
+    const commands = skPath && PathHelpers.skPathToPathCommands(skPath);
+    skPath?.delete();
+
+    if (!commands) {
       return [];
     }
 
     const contours: Vector2[][] = [];
-    const commands = PathHelpers.skPathToPathCommands(skPath);
-    skPath.delete();
     // The points for this contour
     let points: Vector2[] = [];
     // The index into the commands array that this contour starts

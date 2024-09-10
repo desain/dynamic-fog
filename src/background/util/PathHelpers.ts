@@ -19,16 +19,17 @@ import { Drawing } from "../drawing";
 
 export interface ContourMarker {
   /** The distance on the contour */
-  contourDistance: number;
+  distance: number;
   /** The index of the contour  */
-  contourIndex: number;
+  index: number;
 }
 
-export interface PathIntersection extends ContourMarker {
+export interface PathIntersection {
   /** The point of intersection */
   point: Vector2;
   /** Distance to the point */
   distance: number;
+  contour: ContourMarker;
 }
 
 export class PathHelpers {
@@ -208,18 +209,20 @@ export class PathHelpers {
     return {
       point: { x: best[0], y: best[1] },
       distance: bestDistance,
-      contourDistance: bestLength,
-      contourIndex: bestContour,
+      contour: {
+        distance: bestLength,
+        index: bestContour,
+      },
     };
   }
 
-  static getCommandsBetween(
+  static getSkPathBetween(
     CanvasKit: CanvasKit,
     skPath: SkPath,
     start: ContourMarker,
     end: ContourMarker
-  ): PathCommand[] | null {
-    if (start.contourIndex !== end.contourIndex) {
+  ): SkPath | null {
+    if (start.index !== end.index) {
       console.warn("Unable to update subpath across contours");
       return null;
     }
@@ -228,22 +231,35 @@ export class PathHelpers {
     let i = 0;
     while (measure !== null) {
       // Find the correct contour
-      if (i !== start.contourIndex) {
+      if (i !== start.index) {
         measure = iter.next();
         i++;
       } else {
         const segment = measure.getSegment(
-          Math.min(start.contourDistance, end.contourDistance),
-          Math.max(start.contourDistance, end.contourDistance),
+          Math.min(start.distance, end.distance),
+          Math.max(start.distance, end.distance),
           true
         );
 
-        const commands = PathHelpers.skPathToPathCommands(segment);
-        segment.delete();
-        return commands;
+        return segment;
       }
     }
     return null;
+  }
+
+  static getCommandsBetween(
+    CanvasKit: CanvasKit,
+    skPath: SkPath,
+    start: ContourMarker,
+    end: ContourMarker
+  ): PathCommand[] | null {
+    const segment = PathHelpers.getSkPathBetween(CanvasKit, skPath, start, end);
+    if (!segment) {
+      return null;
+    }
+    const commands = PathHelpers.skPathToPathCommands(segment);
+    segment.delete();
+    return commands;
   }
 
   /**

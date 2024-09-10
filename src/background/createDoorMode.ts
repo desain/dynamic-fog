@@ -12,6 +12,8 @@ import { CanvasKit, Path as SkPath } from "canvaskit-wasm";
 import { PathHelpers, PathIntersection } from "./util/PathHelpers";
 import { inverseTransformPoint, transformPoint } from "./util/math";
 import { getPluginId } from "./util/getPluginId";
+import { Door } from "./door";
+import { getMetadata } from "./util/getMetadata";
 
 type DoorIntersection = PathIntersection & { world: Vector2 };
 
@@ -21,6 +23,7 @@ let subpathId: string | null = null;
 let target: { id: string; skPath: SkPath; item: Drawing } | null = null;
 let startHit: DoorIntersection | null = null;
 let endHit: DoorIntersection | null = null;
+let wallVisuals: string[] = [];
 
 export function createDoorMode(CanvasKit: CanvasKit) {
   function getIntersection(pointerPosition: Vector2): DoorIntersection | null {
@@ -125,8 +128,8 @@ export function createDoorMode(CanvasKit: CanvasKit) {
     const commands = PathHelpers.getCommandsBetween(
       CanvasKit,
       skPath,
-      start,
-      end
+      start.contour,
+      end.contour
     );
     if (commands) {
       path.commands = commands;
@@ -174,7 +177,8 @@ export function createDoorMode(CanvasKit: CanvasKit) {
       }
 
       const hit = getIntersection(event.pointerPosition);
-      if (!hit || hit.contourIndex !== startHit.contourIndex) {
+      // Prevent movement if changing between shape contours
+      if (!hit || hit.contour.index !== startHit.contour.index) {
         return;
       }
 
@@ -202,7 +206,25 @@ export function createDoorMode(CanvasKit: CanvasKit) {
         toDelete.push(endId);
       }
       if (subpathId) {
-        toDelete.push(subpathId);
+        wallVisuals.push(subpathId);
+      }
+      if (target && startHit && endHit) {
+        const start = startHit.contour;
+        const end = endHit.contour;
+        OBR.scene.items.updateItems([target.item], (items) => {
+          const item = items[0];
+          if (item) {
+            const metadata: Door[] | undefined =
+              item.metadata[getPluginId("doors")];
+            if (metadata && Array.isArray(metadata)) {
+              metadata.push({ open: true, start, end });
+            } else {
+              item.metadata[getPluginId("doors")] = [
+                { open: true, start, end },
+              ];
+            }
+          }
+        });
       }
       OBR.scene.local.deleteItems(toDelete);
       endId = null;
@@ -221,12 +243,56 @@ export function createDoorMode(CanvasKit: CanvasKit) {
       subpathId = null;
     },
     async onDeactivate() {
-      if (startId) {
-        OBR.scene.local.deleteItems([startId]);
+      const toDelete: string[] = [...wallVisuals];
+      if (endId) {
+        toDelete.push(endId);
       }
+      if (subpathId) {
+        toDelete.push(subpathId);
+      }
+      OBR.scene.local.deleteItems(toDelete);
+      wallVisuals = [];
       startId = null;
       target?.skPath.delete();
       target = null;
+    },
+    async onActivate() {
+      const allDrawings = await OBR.scene.items.getItems(
+        (item): item is Drawing => item.layer === "FOG" && isDrawing(item)
+      );
+      const doorPaths: Path[] = [];
+      for (const drawing of allDrawings) {
+        const doors = getMetadata<Door[]>(
+          drawing.metadata,
+          getPluginId("doors"),
+          []
+        );
+        if (doors.length === 0) {
+          continue;
+        }
+        const skPath = PathHelpers.drawingToSkPath(drawing, CanvasKit);
+        if (!skPath) {
+          continue;
+        }
+        for (const door of doors) {
+          const commands = PathHelpers.getCommandsBetween(
+            CanvasKit,
+            skPath,
+            door.start,
+            door.end
+          );
+          if (!commands) {
+            continue;
+          }
+          const subpath = createSubpath(drawing);
+          subpath.commands = commands;
+          doorPaths.push(subpath);
+          wallVisuals.push(subpath.id);
+        }
+      }
+      if (doorPaths.length > 0) {
+        await OBR.scene.local.addItems(doorPaths);
+      }
     },
     cursors: [
       {
