@@ -15,6 +15,8 @@ import { getPluginId } from "./util/getPluginId";
 import { Door } from "../types/Door";
 import { getMetadata } from "./util/getMetadata";
 
+import doorModeIcon from "../assets/door-mode.svg";
+
 type DoorIntersection = PathIntersection & { world: Vector2 };
 
 let startId: string | null = null;
@@ -140,7 +142,7 @@ export function createDoorMode(CanvasKit: CanvasKit) {
     id: getPluginId("door-mode"),
     icons: [
       {
-        icon: "/icon.svg",
+        icon: doorModeIcon,
         label: "Door",
         filter: {
           activeTools: ["rodeo.owlbear.tool/fog"],
