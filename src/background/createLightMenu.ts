@@ -1,11 +1,15 @@
 import OBR from "@owlbear-rodeo/sdk";
 import { getPluginId } from "./util/getPluginId";
 
+import lightOnIcon from "../assets/light-on.svg";
+import lightSettingsIcon from "../assets/light-settings.svg";
+
 export function createLightMenu() {
   OBR.contextMenu.create({
+    id: getPluginId("light-menu/add"),
     icons: [
       {
-        icon: "/icon.svg",
+        icon: lightOnIcon,
         label: "Add Light",
         filter: {
           every: [
@@ -15,7 +19,6 @@ export function createLightMenu() {
         },
       },
     ],
-    id: getPluginId("light-menu/add"),
     async onClick(context) {
       const dpi = await OBR.scene.grid.getDpi();
       // 6 grid cell radius or 30ft in a 5ft grid
@@ -29,10 +32,11 @@ export function createLightMenu() {
   });
 
   OBR.contextMenu.create({
+    id: getPluginId("light-menu/settings"),
     icons: [
       {
-        icon: "/icon.svg",
-        label: "Remove Light",
+        icon: lightSettingsIcon,
+        label: "Light Settings",
         filter: {
           every: [
             {
@@ -44,13 +48,9 @@ export function createLightMenu() {
         },
       },
     ],
-    id: getPluginId("light-menu/remove"),
-    async onClick(context) {
-      await OBR.scene.items.updateItems(context.items, (items) => {
-        for (const item of items) {
-          delete item.metadata[getPluginId("light")];
-        }
-      });
+    embed: {
+      url: "/menu.html",
+      height: 194,
     },
   });
 }
