@@ -41,6 +41,7 @@ export async function processLights(
     );
     updatedLights.push(light);
     lightUpdates.push(config);
+    prevLights[parent.id] = applyLightConfig({ ...light }, config);
   }
 
   if (deletedLights.length > 0) {
@@ -115,4 +116,5 @@ function applyLightConfig(light: Light, config: LightConfig) {
   if (config.lightType !== undefined && config.lightType !== light.lightType) {
     light.lightType = config.lightType;
   }
+  return light;
 }
