@@ -1,5 +1,5 @@
 import OBR from "@owlbear-rodeo/sdk";
-import { getPluginId } from "./util/getPluginId";
+import { getPluginId } from "../util/getPluginId";
 
 import lightOnIcon from "../assets/light-on.svg";
 import lightSettingsIcon from "../assets/light-settings.svg";

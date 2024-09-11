@@ -3,7 +3,7 @@ import { Drawing, isDrawing } from "../../types/Drawing";
 import { CanvasKit } from "canvaskit-wasm";
 import { processWalls, resetWalls } from "./processWalls";
 import { getDoorSkPaths, processDoors, resetDoors } from "./processDoors";
-import { getPluginId } from "../util/getPluginId";
+import { getPluginId } from "../../util/getPluginId";
 import { processLights, resetLights } from "./processLights";
 
 // A mapping of item IDs to the drawing item in the fog layer

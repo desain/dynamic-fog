@@ -1,6 +1,6 @@
 import OBR, { buildLight, isLight, Item, Light } from "@owlbear-rodeo/sdk";
 import { getMetadata } from "../util/getMetadata";
-import { getPluginId } from "../util/getPluginId";
+import { getPluginId } from "../../util/getPluginId";
 import { LightConfig } from "../../types/LightConfig";
 
 let prevLights: Record<string, Light> = {};

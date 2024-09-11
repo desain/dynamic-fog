@@ -1,7 +1,7 @@
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import OBR, { GridScale, Item } from "@owlbear-rodeo/sdk";
-import { getPluginId } from "../background/util/getPluginId";
+import { getPluginId } from "../util/getPluginId";
 
 import { LightOff } from "./icons/LightOff";
 import NumberField from "./util/NumberField";

@@ -2,7 +2,7 @@ import { Drawing } from "../../types/Drawing";
 import { CanvasKit, Path as SkPath } from "canvaskit-wasm";
 import { Door } from "../../types/Door";
 import { getMetadata } from "../util/getMetadata";
-import { getPluginId } from "../util/getPluginId";
+import { getPluginId } from "../../util/getPluginId";
 import { PathHelpers } from "../util/PathHelpers";
 import { MathM } from "@owlbear-rodeo/sdk";
 import { getDrawing } from "./reconcile";

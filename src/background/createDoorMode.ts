@@ -11,7 +11,7 @@ import { Drawing, isDrawing } from "../types/Drawing";
 import { CanvasKit, Path as SkPath } from "canvaskit-wasm";
 import { PathHelpers, PathIntersection } from "./util/PathHelpers";
 import { inverseTransformPoint, transformPoint } from "./util/math";
-import { getPluginId } from "./util/getPluginId";
+import { getPluginId } from "../util/getPluginId";
 import { Door } from "../types/Door";
 import { getMetadata } from "./util/getMetadata";
 
