@@ -1,9 +1,12 @@
-import OBR, { Item } from "@owlbear-rodeo/sdk";
-import CanvasKitInit, { CanvasKit } from "canvaskit-wasm/bin/full/canvaskit";
+import OBR from "@owlbear-rodeo/sdk";
+import CanvasKitInit from "canvaskit-wasm/bin/full/canvaskit";
 import wasm from "canvaskit-wasm/bin/full/canvaskit.wasm?url";
 import { createLightMenu } from "./createLightMenu";
 import { createDoorMode } from "./createDoorMode";
-import { reconcile, reset } from "./reconcile/reconcile";
+import { Reconciler } from "./reconcile/Reconciler";
+import { LightReactor } from "./reconcile/reactors/LightReactor";
+import { DoorReactor } from "./reconcile/reactors/DoorReactor";
+import { WallReactor } from "./reconcile/reactors/WallReactor";
 
 async function waitUntilOBRReady() {
   return new Promise<void>((resolve) => {
@@ -16,32 +19,12 @@ async function waitUntilOBRReady() {
 async function init() {
   const CanvasKit = await CanvasKitInit({ locateFile: () => wasm });
   await waitUntilOBRReady();
-  OBR.scene.onReadyChange((ready) => handleSceneReady(ready, CanvasKit));
-  OBR.scene.isReady().then((ready) => handleSceneReady(ready, CanvasKit));
   createLightMenu();
   createDoorMode(CanvasKit);
-}
-
-let sceneSubscriptions: VoidFunction[] = [];
-async function handleSceneReady(ready: boolean, CanvasKit: CanvasKit) {
-  for (const unsubscribe of sceneSubscriptions) {
-    unsubscribe();
-  }
-  sceneSubscriptions = [];
-  if (ready) {
-    OBR.scene.items
-      .getItems()
-      .then((items) => handleItemsChange(items, CanvasKit));
-    sceneSubscriptions.push(
-      OBR.scene.items.onChange((items) => handleItemsChange(items, CanvasKit))
-    );
-  } else {
-    reset();
-  }
-}
-
-function handleItemsChange(items: Item[], CanvasKit: CanvasKit) {
-  reconcile(items, CanvasKit);
+  const reconciler = new Reconciler(CanvasKit);
+  reconciler.register(new LightReactor(reconciler));
+  reconciler.register(new DoorReactor(reconciler));
+  reconciler.register(new WallReactor(reconciler));
 }
 
 init();

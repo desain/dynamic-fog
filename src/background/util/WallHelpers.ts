@@ -1,4 +1,4 @@
-import { CanvasKit, Path as SkPath } from "canvaskit-wasm";
+import { CanvasKit } from "canvaskit-wasm";
 import { Drawing } from "../../types/Drawing";
 import { PathHelpers } from "./PathHelpers";
 import {
@@ -8,6 +8,7 @@ import {
   PathCommand,
   Vector2,
 } from "@owlbear-rodeo/sdk";
+import { DoorComponent } from "../reconcile/actors/DoorActor";
 
 export class WallHelpers {
   /**
@@ -20,7 +21,7 @@ export class WallHelpers {
   static drawingToContours(
     drawing: Drawing,
     CanvasKit: CanvasKit,
-    doors: SkPath[],
+    doors: DoorComponent[],
     sampleDistance = 10
   ): Vector2[][] {
     const skPath = PathHelpers.drawingToSkPath(drawing, CanvasKit);
@@ -40,7 +41,7 @@ export class WallHelpers {
     const transform = MathM.fromItem(drawing);
     skPath?.transform(...transform);
     for (const door of doors) {
-      skPath?.op(door, CanvasKit.PathOp.Difference);
+      skPath?.op(door.skPath, CanvasKit.PathOp.Difference);
     }
     skPath?.transform(...MathM.inverse(transform));
 
