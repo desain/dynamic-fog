@@ -38,6 +38,7 @@ export class LightOverlayActor extends Actor {
       .attachedTo(parent.id)
       .position(parent.position)
       .disableAttachmentBehavior(["SCALE"])
+      .maxViewScale(2)
       .disableHit(true)
       .build();
 

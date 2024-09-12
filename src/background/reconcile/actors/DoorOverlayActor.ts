@@ -96,6 +96,8 @@ export class DoorOverlayActor extends Actor {
       const values = this.getDoorCenterAndCommands(parent, nextDoor);
       if (values) {
         const [center, commands] = values;
+        // TODO: Don't maintain a full local item instead just hold onto the ID
+        // This means we don't need to update two states
         door.billboard = {
           ...door.billboard,
           image: {
@@ -245,6 +247,7 @@ export class DoorOverlayActor extends Actor {
       .position(position)
       .disableAttachmentBehavior(["SCALE"])
       .metadata({ [getPluginId("door-index")]: index })
+      .maxViewScale(2)
       .locked(true)
       .build();
 
@@ -257,18 +260,21 @@ export class DoorOverlayActor extends Actor {
     index: number,
     commands: PathCommand[]
   ) {
-    return buildPath()
-      .attachedTo(parent.id)
-      .position(parent.position)
-      .rotation(parent.rotation)
-      .scale(parent.scale)
-      .fillOpacity(0)
-      .strokeWidth(parent.style.strokeWidth)
-      .strokeColor(open ? OPEN_COLOR : CLOSE_COLOR)
-      .commands(commands)
-      .layer("CONTROL")
-      .metadata({ [getPluginId("door-index")]: index })
-      .locked(true)
-      .build();
+    return (
+      buildPath()
+        .attachedTo(parent.id)
+        .position(parent.position)
+        .rotation(parent.rotation)
+        .scale(parent.scale)
+        .fillOpacity(0)
+        // TODO: Should use grid stroke width here
+        .strokeWidth(parent.style.strokeWidth)
+        .strokeColor(open ? OPEN_COLOR : CLOSE_COLOR)
+        .commands(commands)
+        .layer("CONTROL")
+        .metadata({ [getPluginId("door-index")]: index })
+        .locked(true)
+        .build()
+    );
   }
 }
