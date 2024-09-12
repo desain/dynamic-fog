@@ -262,6 +262,29 @@ export class PathHelpers {
     return commands;
   }
 
+  static getSkPathPoint(
+    CanvasKit: CanvasKit,
+    skPath: SkPath,
+    percentDistance = 0.5,
+    contour = 0
+  ): Vector2 | null {
+    const iter = new CanvasKit.ContourMeasureIter(skPath, false, 1);
+    let measure = iter.next();
+    let i = 0;
+    while (measure !== null) {
+      // Find the correct contour
+      if (i !== contour) {
+        measure = iter.next();
+        i++;
+      } else {
+        const mid = measure.length() * percentDistance;
+        const [x, y] = measure.getPosTan(mid);
+        return { x, y };
+      }
+    }
+    return null;
+  }
+
   /**
    * Convert an OBR Shape into a CanvasKit SkPath
    */

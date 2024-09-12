@@ -7,6 +7,7 @@ import { Reconciler } from "./reconcile/Reconciler";
 import { LightReactor } from "./reconcile/reactors/LightReactor";
 import { DoorReactor } from "./reconcile/reactors/DoorReactor";
 import { WallReactor } from "./reconcile/reactors/WallReactor";
+import { initOverlay } from "./overlay";
 
 async function waitUntilOBRReady() {
   return new Promise<void>((resolve) => {
@@ -25,6 +26,7 @@ async function init() {
   reconciler.register(new LightReactor(reconciler));
   reconciler.register(new DoorReactor(reconciler));
   reconciler.register(new WallReactor(reconciler));
+  initOverlay(reconciler);
 }
 
 init();

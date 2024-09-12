@@ -2,6 +2,7 @@ import OBR, {
   buildPath,
   buildShape,
   isPath,
+  Item,
   MathM,
   Path,
   ToolEvent,
@@ -25,7 +26,6 @@ let subpathId: string | null = null;
 let target: { id: string; skPath: SkPath; item: Drawing } | null = null;
 let startHit: DoorIntersection | null = null;
 let endHit: DoorIntersection | null = null;
-let wallVisuals: string[] = [];
 
 export function createDoorMode(CanvasKit: CanvasKit) {
   function getIntersection(pointerPosition: Vector2): DoorIntersection | null {
@@ -138,6 +138,60 @@ export function createDoorMode(CanvasKit: CanvasKit) {
     }
   }
 
+  async function getAttachedDoor(
+    target?: Item
+  ): Promise<[Item, number] | null> {
+    if (
+      target &&
+      getPluginId("door-index") in target.metadata &&
+      target.attachedTo
+    ) {
+      const doorIndex = getMetadata(
+        target.metadata,
+        getPluginId("door-index"),
+        -1
+      );
+      const parent = (await OBR.scene.items.getItems([target.attachedTo]))[0];
+      if (parent) {
+        return [parent, doorIndex];
+      }
+    }
+    return null;
+  }
+
+  async function toggleDoorOpen(parent: Item, index: number) {
+    await OBR.scene.items.updateItems([parent], (items) => {
+      const item = items[0];
+      if (item) {
+        const doors = getMetadata<Door[]>(
+          item.metadata,
+          getPluginId("doors"),
+          []
+        );
+        const door = doors[index];
+        if (door) {
+          door.open = !door.open;
+        }
+      }
+    });
+  }
+
+  async function deleteDoor(parent: Item, index: number) {
+    await OBR.scene.items.updateItems([parent], (items) => {
+      const item = items[0];
+      if (item) {
+        const doors = getMetadata<Door[]>(
+          item.metadata,
+          getPluginId("doors"),
+          []
+        );
+        if (index >= 0 && index < doors.length) {
+          doors.splice(index, 1);
+        }
+      }
+    });
+  }
+
   OBR.tool.createMode({
     id: getPluginId("door-mode"),
     icons: [
@@ -149,6 +203,20 @@ export function createDoorMode(CanvasKit: CanvasKit) {
         },
       },
     ],
+    async onToolClick(_, event) {
+      const door = await getAttachedDoor(event.target);
+      if (door) {
+        const [item, index] = door;
+        await toggleDoorOpen(item, index);
+      }
+    },
+    async onToolDoubleClick(_, event) {
+      const door = await getAttachedDoor(event.target);
+      if (door) {
+        const [item, index] = door;
+        await deleteDoor(item, index);
+      }
+    },
     async onToolMove(_, event) {
       if (!endId) {
         await createOrUpdateStart(event);
@@ -208,7 +276,7 @@ export function createDoorMode(CanvasKit: CanvasKit) {
         toDelete.push(endId);
       }
       if (subpathId) {
-        wallVisuals.push(subpathId);
+        toDelete.push(subpathId);
       }
       if (target && startHit && endHit) {
         const start = startHit.contour;
@@ -219,10 +287,10 @@ export function createDoorMode(CanvasKit: CanvasKit) {
             const metadata: Door[] | undefined =
               item.metadata[getPluginId("doors")];
             if (metadata && Array.isArray(metadata)) {
-              metadata.push({ open: true, start, end });
+              metadata.push({ open: false, start, end });
             } else {
               item.metadata[getPluginId("doors")] = [
-                { open: true, start, end },
+                { open: false, start, end },
               ];
             }
           }
@@ -245,7 +313,7 @@ export function createDoorMode(CanvasKit: CanvasKit) {
       subpathId = null;
     },
     async onDeactivate() {
-      const toDelete: string[] = [...wallVisuals];
+      const toDelete: string[] = [];
       if (endId) {
         toDelete.push(endId);
       }
@@ -256,51 +324,24 @@ export function createDoorMode(CanvasKit: CanvasKit) {
         toDelete.push(startId);
       }
       OBR.scene.local.deleteItems(toDelete);
-      wallVisuals = [];
       startId = null;
       target?.skPath.delete();
       target = null;
     },
-    async onActivate() {
-      const allDrawings = await OBR.scene.items.getItems(
-        (item): item is Drawing => item.layer === "FOG" && isDrawing(item)
-      );
-      const doorPaths: Path[] = [];
-      for (const drawing of allDrawings) {
-        const doors = getMetadata<Door[]>(
-          drawing.metadata,
-          getPluginId("doors"),
-          []
-        );
-        if (doors.length === 0) {
-          continue;
-        }
-        const skPath = PathHelpers.drawingToSkPath(drawing, CanvasKit);
-        if (!skPath) {
-          continue;
-        }
-        for (const door of doors) {
-          const commands = PathHelpers.getCommandsBetween(
-            CanvasKit,
-            skPath,
-            door.start,
-            door.end
-          );
-          if (!commands) {
-            continue;
-          }
-          const subpath = createSubpath(drawing);
-          subpath.commands = commands;
-          doorPaths.push(subpath);
-          wallVisuals.push(subpath.id);
-        }
-        skPath.delete();
-      }
-      if (doorPaths.length > 0) {
-        await OBR.scene.local.addItems(doorPaths);
-      }
-    },
+    async onActivate() {},
     cursors: [
+      {
+        cursor: "Pointer",
+        filter: {
+          target: [
+            {
+              key: ["metadata", getPluginId("door-index")],
+              value: undefined,
+              operator: "!=",
+            },
+          ],
+        },
+      },
       {
         cursor: "crosshair",
         filter: {},

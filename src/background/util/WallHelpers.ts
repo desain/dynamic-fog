@@ -41,7 +41,9 @@ export class WallHelpers {
     const transform = MathM.fromItem(drawing);
     skPath?.transform(...transform);
     for (const door of doors) {
-      skPath?.op(door.skPath, CanvasKit.PathOp.Difference);
+      if (door.base.open) {
+        skPath?.op(door.skPath, CanvasKit.PathOp.Difference);
+      }
     }
     skPath?.transform(...MathM.inverse(transform));
 
