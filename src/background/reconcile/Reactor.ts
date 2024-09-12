@@ -71,4 +71,11 @@ export abstract class Reactor {
       return false;
     }
   }
+
+  /**
+   * Does this reactor currently have an Actor for this ID
+   */
+  has(id: string) {
+    return this.actors.has(id);
+  }
 }

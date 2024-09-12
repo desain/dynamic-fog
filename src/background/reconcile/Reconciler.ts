@@ -121,7 +121,7 @@ export class Reconciler {
     for (const item of items) {
       if (reactor.filter(item)) {
         const prev = this.prevItems.get(item.id);
-        if (prev) {
+        if (prev && reactor.has(item.id)) {
           // If we have a previous item perform a diff as defined by the reactor
           if (reactor.diff(prev, item)) {
             updated.push(item);
@@ -129,8 +129,8 @@ export class Reconciler {
         } else {
           added.push(item);
         }
+        deletedIds.delete(item.id);
       }
-      deletedIds.delete(item.id);
     }
 
     for (const id of deletedIds) {
