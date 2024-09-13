@@ -116,8 +116,9 @@ export class DoorActor extends Actor {
       return null;
     }
     segment.stroke({
-      // Add a buffer to account for the segmentation of curves
-      width: drawing.style.strokeWidth + 1,
+      // Add a buffer to account for the segmentation of curves and
+      // imperfect alignments
+      width: drawing.style.strokeWidth + 20,
     });
 
     // Transform segment into world space
