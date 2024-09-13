@@ -6,6 +6,7 @@ import {
 } from "@owlbear-rodeo/sdk";
 import { Actor } from "../Actor";
 import { Reconciler } from "../Reconciler";
+import { getPluginId } from "../../../util/getPluginId";
 
 import lightBillboard from "../../../assets/light-billboard.svg";
 
@@ -39,7 +40,8 @@ export class LightOverlayActor extends Actor {
       .position(parent.position)
       .disableAttachmentBehavior(["SCALE"])
       .maxViewScale(2)
-      .disableHit(true)
+      .locked(true)
+      .metadata({ [getPluginId("light-overlay")]: true })
       .build();
 
     return billboard;

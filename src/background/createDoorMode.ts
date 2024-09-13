@@ -73,6 +73,9 @@ export function createDoorMode(CanvasKit: CanvasKit) {
       .build();
   }
 
+  /**
+   * Manage the start circle indicator
+   */
   async function createOrUpdateStart(event: ToolEvent) {
     if (
       event.target &&
@@ -97,9 +100,9 @@ export function createDoorMode(CanvasKit: CanvasKit) {
         return;
       }
 
+      // Remove the starting indicator if we go too far away
       if (hit.distance > MIN_INTERSECTION_DISTANCE) {
         if (startId) {
-          // No target so delete the starting indicator
           await OBR.scene.local.deleteItems([startId]);
           startId = null;
         }
@@ -149,6 +152,10 @@ export function createDoorMode(CanvasKit: CanvasKit) {
     }
   }
 
+  /**
+   * Get the attached parent if the target is a door overlay
+   * also get which door was selected for that parent
+   */
   async function getAttachedDoor(
     target?: Item
   ): Promise<[Item, number] | null> {
@@ -165,6 +172,23 @@ export function createDoorMode(CanvasKit: CanvasKit) {
       const parent = (await OBR.scene.items.getItems([target.attachedTo]))[0];
       if (parent) {
         return [parent, doorIndex];
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Get the attached parent if the target is a light overlay
+   */
+  async function getAttachedLight(target?: Item): Promise<Item | null> {
+    if (
+      target &&
+      getPluginId("light-overlay") in target.metadata &&
+      target.attachedTo
+    ) {
+      const parent = (await OBR.scene.items.getItems([target.attachedTo]))[0];
+      if (parent) {
+        return parent;
       }
     }
     return null;
@@ -215,13 +239,20 @@ export function createDoorMode(CanvasKit: CanvasKit) {
       },
     ],
     async onToolClick(_, event) {
+      // Toggle door or select a light if selecting their overlay
       const door = await getAttachedDoor(event.target);
       if (door) {
         const [item, index] = door;
         await toggleDoorOpen(item, index);
+      } else {
+        const light = await getAttachedLight(event.target);
+        if (light) {
+          await OBR.player.select([light.id], true);
+        }
       }
     },
     async onToolDoubleClick(_, event) {
+      // Delete door if selecting their overlay
       const door = await getAttachedDoor(event.target);
       if (door) {
         const [item, index] = door;
@@ -347,6 +378,12 @@ export function createDoorMode(CanvasKit: CanvasKit) {
           target: [
             {
               key: ["metadata", getPluginId("door-index")],
+              value: undefined,
+              operator: "!=",
+              coordinator: "||",
+            },
+            {
+              key: ["metadata", getPluginId("light-overlay")],
               value: undefined,
               operator: "!=",
             },
