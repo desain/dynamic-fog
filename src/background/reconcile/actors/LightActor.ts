@@ -6,15 +6,17 @@ import { getMetadata } from "../../util/getMetadata";
 import { getPluginId } from "../../../util/getPluginId";
 
 export class LightActor extends Actor {
-  private light: Light;
+  // ID of the current light item
+  private light: string;
   constructor(reconciler: Reconciler, parent: Item) {
     super(reconciler);
-    this.light = this.parentToLight(parent);
-    this.reconciler.patcher.addItems(this.light);
+    const item = this.parentToLight(parent);
+    this.light = item.id;
+    this.reconciler.patcher.addItems(item);
   }
 
   delete(): void {
-    this.reconciler.patcher.deleteItems(this.light.id);
+    this.reconciler.patcher.deleteItems(this.light);
   }
 
   update(parent: Item) {
@@ -24,7 +26,7 @@ export class LightActor extends Actor {
       {}
     );
     this.reconciler.patcher.updateItems([
-      this.light.id,
+      this.light,
       (item) => {
         if (isLight(item)) {
           this.applyLightConfig(item, config);

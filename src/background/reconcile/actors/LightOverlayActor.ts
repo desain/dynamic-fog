@@ -1,9 +1,4 @@
-import {
-  Billboard,
-  buildBillboard,
-  ImageContent,
-  Item,
-} from "@owlbear-rodeo/sdk";
+import { buildBillboard, ImageContent, Item } from "@owlbear-rodeo/sdk";
 import { Actor } from "../Actor";
 import { Reconciler } from "../Reconciler";
 import { getPluginId } from "../../../util/getPluginId";
@@ -18,15 +13,17 @@ const lightImage: ImageContent = {
 };
 
 export class LightOverlayActor extends Actor {
-  private billboard: Billboard;
+  // ID of the current light billboard
+  private billboard: string;
   constructor(reconciler: Reconciler, parent: Item) {
     super(reconciler);
-    this.billboard = this.parentToBillboard(parent);
-    this.reconciler.patcher.addItems(this.billboard);
+    const item = this.parentToBillboard(parent);
+    this.billboard = item.id;
+    this.reconciler.patcher.addItems(item);
   }
 
   delete(): void {
-    this.reconciler.patcher.deleteItems(this.billboard.id);
+    this.reconciler.patcher.deleteItems(this.billboard);
   }
 
   update() {}

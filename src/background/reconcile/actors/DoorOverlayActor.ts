@@ -42,8 +42,10 @@ const CLOSE_COLOR = "#ff4d4d";
 
 export interface DoorOverlayComponent {
   base: Door;
-  billboard: Billboard;
-  path: Path;
+  // ID of the current billboard item
+  billboard: string;
+  // ID of the current path item
+  path: string;
 }
 
 export class DoorOverlayActor extends Actor {
@@ -51,16 +53,23 @@ export class DoorOverlayActor extends Actor {
   constructor(reconciler: Reconciler, parent: Item) {
     super(reconciler);
     if (isDrawing(parent)) {
-      this.doors = this.drawingToDoorOverlayComponents(parent);
+      const items = this.drawingToDoorItems(parent);
+      this.doors.push(
+        ...items.map((item) => ({
+          base: item.base,
+          billboard: item.billboard.id,
+          path: item.path.id,
+        }))
+      );
       this.reconciler.patcher.addItems(
-        ...this.doors.flatMap((door) => [door.billboard, door.path])
+        ...items.flatMap((door) => [door.billboard, door.path])
       );
     }
   }
 
   delete(): void {
     this.reconciler.patcher.deleteItems(
-      ...this.doors.flatMap((door) => [door.billboard.id, door.path.id])
+      ...this.doors.flatMap((door) => [door.billboard, door.path])
     );
   }
 
@@ -74,10 +83,14 @@ export class DoorOverlayActor extends Actor {
       // Need to add more doors as there are new ones
       for (let i = prev.length; i < next.length; i++) {
         const door = next[i];
-        const visual = this.doorToDoorOverlayComponent(parent, door, i);
-        if (visual) {
-          prev.push(visual);
-          this.reconciler.patcher.addItems(visual.billboard, visual.path);
+        const items = this.doorToDoorItems(parent, door, i);
+        if (items) {
+          prev.push({
+            base: items.base,
+            billboard: items.billboard.id,
+            path: items.path.id,
+          });
+          this.reconciler.patcher.addItems(items.billboard, items.path);
         }
       }
     } else if (prev.length > next.length) {
@@ -85,7 +98,7 @@ export class DoorOverlayActor extends Actor {
       const numRemoved = prev.length - next.length;
       const toDelete = prev.splice(prev.length - numRemoved, numRemoved);
       this.reconciler.patcher.deleteItems(
-        ...toDelete.flatMap((door) => [door.billboard.id, door.path.id])
+        ...toDelete.flatMap((door) => [door.billboard, door.path])
       );
     }
     // Update remaining doors
@@ -96,34 +109,9 @@ export class DoorOverlayActor extends Actor {
       const values = this.getDoorCenterAndCommands(parent, nextDoor);
       if (values) {
         const [center, commands] = values;
-        // TODO: Don't maintain a full local item instead just hold onto the ID
-        // This means we don't need to update two states
-        door.billboard = {
-          ...door.billboard,
-          image: {
-            ...door.billboard.image,
-            url: door.base.open ? doorOpenImage.url : doorClosedImage.url,
-          },
-          position: center,
-          metadata: {
-            [getPluginId("door-index")]: i,
-          },
-        };
-        door.path = {
-          ...door.path,
-          commands: commands,
-          metadata: {
-            [getPluginId("door-index")]: i,
-          },
-          style: {
-            ...door.path.style,
-            strokeColor: door.base.open ? OPEN_COLOR : CLOSE_COLOR,
-            strokeWidth: parent.style.strokeWidth,
-          },
-        };
         this.reconciler.patcher.updateItems(
           [
-            door.billboard.id,
+            door.billboard,
             (item) => {
               item.position = center;
               item.metadata = {
@@ -137,7 +125,7 @@ export class DoorOverlayActor extends Actor {
             },
           ],
           [
-            door.path.id,
+            door.path,
             (item) => {
               item.metadata = {
                 [getPluginId("door-index")]: i,
@@ -156,10 +144,16 @@ export class DoorOverlayActor extends Actor {
     }
   }
 
-  private drawingToDoorOverlayComponents(
-    drawing: Drawing
-  ): DoorOverlayComponent[] {
-    const visuals: DoorOverlayComponent[] = [];
+  private drawingToDoorItems(drawing: Drawing): {
+    base: Door;
+    billboard: Billboard;
+    path: Path;
+  }[] {
+    const doorItems: {
+      base: Door;
+      billboard: Billboard;
+      path: Path;
+    }[] = [];
     const doors = getMetadata<Door[]>(
       drawing.metadata,
       getPluginId("doors"),
@@ -167,20 +161,24 @@ export class DoorOverlayActor extends Actor {
     );
     for (let i = 0; i < doors.length; i++) {
       const door = doors[i];
-      const visual = this.doorToDoorOverlayComponent(drawing, door, i);
-      if (!visual) {
+      const items = this.doorToDoorItems(drawing, door, i);
+      if (!items) {
         continue;
       }
-      visuals.push(visual);
+      doorItems.push(items);
     }
-    return visuals;
+    return doorItems;
   }
 
-  private doorToDoorOverlayComponent(
+  private doorToDoorItems(
     drawing: Drawing,
     door: Door,
     index: number
-  ): DoorOverlayComponent | null {
+  ): {
+    base: Door;
+    billboard: Billboard;
+    path: Path;
+  } | null {
     const values = this.getDoorCenterAndCommands(drawing, door);
     if (!values) {
       return null;

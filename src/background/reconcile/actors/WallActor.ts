@@ -6,7 +6,8 @@ import { WallHelpers } from "../../util/WallHelpers";
 import { DoorReactor } from "../reactors/DoorReactor";
 
 export class WallActor extends Actor {
-  private walls: Wall[] = [];
+  // IDs of the current wall items
+  private walls: string[] = [];
   private door: DoorReactor;
   constructor(reconciler: Reconciler, parent: Item) {
     super(reconciler);
@@ -16,13 +17,14 @@ export class WallActor extends Actor {
     }
     this.door = door;
     if (isDrawing(parent)) {
-      this.walls = this.drawingToWalls(parent);
-      this.reconciler.patcher.addItems(...this.walls);
+      const items = this.drawingToWalls(parent);
+      this.walls = items.map((item) => item.id);
+      this.reconciler.patcher.addItems(...items);
     }
   }
 
   delete(): void {
-    this.reconciler.patcher.deleteItems(...this.walls.map((wall) => wall.id));
+    this.reconciler.patcher.deleteItems(...this.walls);
   }
 
   update(parent: Item) {
@@ -40,25 +42,21 @@ export class WallActor extends Actor {
       for (let i = prev.length; i < next.length; i++) {
         const contour = next[i];
         const wall = this.contourToWall(parent, contour);
-        prev.push(wall);
+        prev.push(wall.id);
         this.reconciler.patcher.addItems(wall);
       }
     } else if (prev.length > next.length) {
       // Need to remove walls as there are less contours
       const numRemoved = prev.length - next.length;
       const toDelete = prev.splice(prev.length - numRemoved, numRemoved);
-      this.reconciler.patcher.deleteItems(...toDelete.map((wall) => wall.id));
+      this.reconciler.patcher.deleteItems(...toDelete.map((wall) => wall));
     }
     // Update remaining walls
     for (let i = 0; i < prev.length; i++) {
       const wall = prev[i];
       const contour = next[i];
-      prev[i] = {
-        ...wall,
-        points: contour,
-      };
       this.reconciler.patcher.updateItems([
-        wall.id,
+        wall,
         (item) => {
           if (isWall(item)) {
             item.points = contour;
