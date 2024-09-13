@@ -89,7 +89,6 @@ export class WallActor extends Actor {
       .position(drawing.position)
       .rotation(drawing.rotation)
       .scale(drawing.scale)
-      .blocking(false)
       .build();
     return wall;
   }
