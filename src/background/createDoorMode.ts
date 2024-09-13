@@ -227,6 +227,25 @@ export function createDoorMode(CanvasKit: CanvasKit) {
     });
   }
 
+  async function clearControls() {
+    const toDelete: string[] = [];
+    if (endId) {
+      toDelete.push(endId);
+    }
+    if (subpathId) {
+      toDelete.push(subpathId);
+    }
+    if (startId) {
+      toDelete.push(startId);
+    }
+    endId = null;
+    subpathId = null;
+    startId = null;
+    target?.skPath.delete();
+    target = null;
+    await OBR.scene.local.deleteItems(toDelete);
+  }
+
   OBR.tool.createMode({
     id: getPluginId("door-mode"),
     icons: [
@@ -313,13 +332,6 @@ export function createDoorMode(CanvasKit: CanvasKit) {
       });
     },
     async onToolDragEnd() {
-      const toDelete: string[] = [];
-      if (endId) {
-        toDelete.push(endId);
-      }
-      if (subpathId) {
-        toDelete.push(subpathId);
-      }
       if (target && startHit && endHit) {
         const start = startHit.contour;
         const end = endHit.contour;
@@ -338,39 +350,14 @@ export function createDoorMode(CanvasKit: CanvasKit) {
           }
         });
       }
-      OBR.scene.local.deleteItems(toDelete);
-      endId = null;
-      subpathId = null;
+      await clearControls();
     },
     async onToolDragCancel() {
-      const toDelete: string[] = [];
-      if (endId) {
-        toDelete.push(endId);
-      }
-      if (subpathId) {
-        toDelete.push(subpathId);
-      }
-      OBR.scene.local.deleteItems(toDelete);
-      endId = null;
-      subpathId = null;
+      await clearControls();
     },
     async onDeactivate() {
-      const toDelete: string[] = [];
-      if (endId) {
-        toDelete.push(endId);
-      }
-      if (subpathId) {
-        toDelete.push(subpathId);
-      }
-      if (startId) {
-        toDelete.push(startId);
-      }
-      OBR.scene.local.deleteItems(toDelete);
-      startId = null;
-      target?.skPath.delete();
-      target = null;
+      await clearControls();
     },
-    async onActivate() {},
     cursors: [
       {
         cursor: "Pointer",
