@@ -118,6 +118,7 @@ export class DoorOverlayActor extends Actor {
           style: {
             ...door.path.style,
             strokeColor: door.base.open ? OPEN_COLOR : CLOSE_COLOR,
+            strokeWidth: parent.style.strokeWidth,
           },
         };
         this.reconciler.patcher.updateItems(
@@ -146,6 +147,7 @@ export class DoorOverlayActor extends Actor {
                 item.style.strokeColor = door.base.open
                   ? OPEN_COLOR
                   : CLOSE_COLOR;
+                item.style.strokeWidth = parent.style.strokeWidth;
               }
             },
           ]
@@ -260,21 +262,18 @@ export class DoorOverlayActor extends Actor {
     index: number,
     commands: PathCommand[]
   ) {
-    return (
-      buildPath()
-        .attachedTo(parent.id)
-        .position(parent.position)
-        .rotation(parent.rotation)
-        .scale(parent.scale)
-        .fillOpacity(0)
-        // TODO: Should use grid stroke width here
-        .strokeWidth(parent.style.strokeWidth)
-        .strokeColor(open ? OPEN_COLOR : CLOSE_COLOR)
-        .commands(commands)
-        .layer("CONTROL")
-        .metadata({ [getPluginId("door-index")]: index })
-        .locked(true)
-        .build()
-    );
+    return buildPath()
+      .attachedTo(parent.id)
+      .position(parent.position)
+      .rotation(parent.rotation)
+      .scale(parent.scale)
+      .fillOpacity(0)
+      .strokeWidth(parent.style.strokeWidth)
+      .strokeColor(open ? OPEN_COLOR : CLOSE_COLOR)
+      .commands(commands)
+      .layer("CONTROL")
+      .metadata({ [getPluginId("door-index")]: index })
+      .locked(true)
+      .build();
   }
 }

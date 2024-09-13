@@ -32,8 +32,6 @@ export class WallHelpers {
       join: isShape(drawing)
         ? CanvasKit.StrokeJoin.Miter
         : CanvasKit.StrokeJoin.Round,
-      // TODO: Use grid stroke width instead
-      // TODO: Check with zero width
       width: drawing.style.strokeWidth,
     });
 

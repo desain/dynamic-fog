@@ -116,8 +116,6 @@ export class DoorActor extends Actor {
       return null;
     }
     segment.stroke({
-      // TODO: Use grid stroke width instead
-      // TODO: Check with zero width
       // Add a buffer to account for the segmentation of curves
       width: drawing.style.strokeWidth + 1,
     });
