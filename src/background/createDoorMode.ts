@@ -18,6 +18,8 @@ import { getMetadata } from "./util/getMetadata";
 
 import doorModeIcon from "../assets/door-mode.svg";
 
+const MIN_INTERSECTION_DISTANCE = 75;
+
 type DoorIntersection = PathIntersection & { world: Vector2 };
 
 let startId: string | null = null;
@@ -92,6 +94,15 @@ export function createDoorMode(CanvasKit: CanvasKit) {
 
       const hit = getIntersection(event.pointerPosition);
       if (!hit) {
+        return;
+      }
+
+      if (hit.distance > MIN_INTERSECTION_DISTANCE) {
+        if (startId) {
+          // No target so delete the starting indicator
+          await OBR.scene.local.deleteItems([startId]);
+          startId = null;
+        }
         return;
       }
 
