@@ -23,9 +23,20 @@ export function createLightMenu() {
       const dpi = await OBR.scene.grid.getDpi();
       // 6 grid cell radius or 30ft in a 5ft grid
       const attenuationRadius = 6 * dpi;
+      // Make source radius smaller than the default 50 to make it easier
+      // to fit through a 5ft door
+      const sourceRadius = 25;
+      // Make the falloff smaller than the default 1 as it better suits
+      // the new source radius and makes things a little clearer
+      const falloff = 0.2;
+
       await OBR.scene.items.updateItems(context.items, (items) => {
         for (const item of items) {
-          item.metadata[getPluginId("light")] = { attenuationRadius };
+          item.metadata[getPluginId("light")] = {
+            attenuationRadius,
+            sourceRadius,
+            falloff,
+          };
         }
       });
     },

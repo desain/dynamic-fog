@@ -141,13 +141,13 @@ function MenuControls({
     });
   }
 
-  const edgeValue = values.falloff === 1 ? "SOFT" : "HARD";
+  const edgeValue = values.falloff > 1 ? "SOFT" : "HARD";
   async function handleEdgeChange(value: "SOFT" | "HARD") {
     await OBR.scene.items.updateItems(items, (items) => {
       for (const item of items) {
         const config = item.metadata[getPluginId("light")];
         if (isPlainObject(config)) {
-          config.falloff = value === "SOFT" ? 1 : 0.1;
+          config.falloff = value === "SOFT" ? 1.5 : 0.2;
         }
       }
     });
@@ -226,11 +226,11 @@ function MenuControls({
             onChange={(_, v) => v && handleEdgeChange(v)}
             fullWidth
           >
-            <ToggleButton value="SOFT" aria-label="soft">
-              <LightSoft />
-            </ToggleButton>
             <ToggleButton value="HARD" aria-label="hard">
               <LightHard />
+            </ToggleButton>
+            <ToggleButton value="SOFT" aria-label="soft">
+              <LightSoft />
             </ToggleButton>
           </ToggleButtonGroup>
         </FormControl>
