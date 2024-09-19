@@ -38,6 +38,7 @@ export class LightOverlayActor extends Actor {
       .disableAttachmentBehavior(["SCALE"])
       .maxViewScale(2)
       .locked(true)
+      .visible(parent.visible)
       .metadata({ [getPluginId("light-overlay")]: true })
       .build();
 

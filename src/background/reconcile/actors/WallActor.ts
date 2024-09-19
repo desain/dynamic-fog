@@ -87,6 +87,7 @@ export class WallActor extends Actor {
       .position(drawing.position)
       .rotation(drawing.rotation)
       .scale(drawing.scale)
+      .disableAttachmentBehavior(["VISIBLE"])
       .build();
     return wall;
   }
