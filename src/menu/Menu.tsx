@@ -7,7 +7,7 @@ import { LightOff } from "./icons/LightOff";
 import NumberField from "./util/NumberField";
 import { useEffect, useMemo, useState } from "react";
 import Skeleton from "@mui/material/Skeleton";
-import { getMetadata } from "../background/util/getMetadata";
+import { getMetadata } from "../util/getMetadata";
 import { LightConfig } from "../types/LightConfig";
 import { isPlainObject } from "./util/isPlainObject";
 import InputAdornment from "@mui/material/InputAdornment";

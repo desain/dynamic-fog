@@ -2,7 +2,7 @@ import { buildLight, isLight, Item, Light } from "@owlbear-rodeo/sdk";
 import { Actor } from "../Actor";
 import { Reconciler } from "../Reconciler";
 import { LightConfig } from "../../../types/LightConfig";
-import { getMetadata } from "../../util/getMetadata";
+import { getMetadata } from "../../../util/getMetadata";
 import { getPluginId } from "../../../util/getPluginId";
 
 export class LightActor extends Actor {

@@ -14,7 +14,7 @@ import { PathHelpers, PathIntersection } from "./util/PathHelpers";
 import { inverseTransformPoint, transformPoint } from "./util/math";
 import { getPluginId } from "../util/getPluginId";
 import { Door } from "../types/Door";
-import { getMetadata } from "./util/getMetadata";
+import { getMetadata } from "../util/getMetadata";
 
 import doorModeIcon from "../assets/door-mode.svg";
 

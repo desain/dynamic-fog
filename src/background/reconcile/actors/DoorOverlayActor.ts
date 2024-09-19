@@ -16,7 +16,7 @@ import { Reconciler } from "../Reconciler";
 import { PathHelpers } from "../../util/PathHelpers";
 import { Door } from "../../../types/Door";
 import { Drawing, isDrawing } from "../../../types/Drawing";
-import { getMetadata } from "../../util/getMetadata";
+import { getMetadata } from "../../../util/getMetadata";
 import { getPluginId } from "../../../util/getPluginId";
 import { transformPoint } from "../../util/math";
 
