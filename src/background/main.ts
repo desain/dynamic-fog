@@ -17,12 +17,13 @@ async function waitUntilOBRReady() {
   });
 }
 
+let reconciler: Reconciler | null = null;
 async function init() {
   const CanvasKit = await CanvasKitInit({ locateFile: () => wasm });
   await waitUntilOBRReady();
   createLightMenu();
   createDoorMode(CanvasKit);
-  const reconciler = new Reconciler(CanvasKit);
+  reconciler = new Reconciler(CanvasKit);
   reconciler.register(new LightReactor(reconciler));
   reconciler.register(new DoorReactor(reconciler));
   reconciler.register(new WallReactor(reconciler));
@@ -30,3 +31,11 @@ async function init() {
 }
 
 init();
+
+// Clean up on HMR refresh
+if (import.meta.hot) {
+  import.meta.hot.accept();
+  import.meta.hot.dispose(() => {
+    reconciler?.delete();
+  });
+}
