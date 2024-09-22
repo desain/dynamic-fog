@@ -1,4 +1,5 @@
 import { CanvasKit, Path as SkPath } from "canvaskit-wasm";
+import simplify from "simplify-js";
 import { RegularPolygon } from "./RegularPolygon";
 import { CardinalSpline } from "./CardinalSpline";
 import {
@@ -123,7 +124,7 @@ export class PathHelpers {
       measure = iter.next();
     }
     skPath.delete();
-    return points;
+    return simplify(points);
   }
 
   static getSkPathIntersection(
