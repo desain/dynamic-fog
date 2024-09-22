@@ -8,6 +8,14 @@ import { CanvasKit } from "canvaskit-wasm";
  * state and producing diffs when changes happen.
  * These diffs are passed into registered Reactors who manage creating local children
  * for these shared items.
+ * This is a one way data binding not two way.
+ * This means it is simpler but has some caveats to be aware of.
+ * As it can only react to changes in the shared scene (not the local scene) we need to limit
+ * the types of local children created.
+ * Specifically they should be unselectable (disable hit) and have COPY attachment disabled.
+ * This is because if a local item is deleted or added outside of the reconciler we don't know about it.
+ * This could lead to an invalid state if not careful.
+ * If this is an issue a two way data binding system should be used instead.
  */
 export class Reconciler {
   CanvasKit: CanvasKit;
