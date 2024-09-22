@@ -46,7 +46,7 @@ export class LightActor extends Actor {
       .position(parent.position)
       .rotation(parent.rotation)
       .visible(parent.visible)
-      .disableAttachmentBehavior(["SCALE"])
+      .disableAttachmentBehavior(["SCALE", "COPY"])
       .build();
 
     this.applyLightConfig(light, config);

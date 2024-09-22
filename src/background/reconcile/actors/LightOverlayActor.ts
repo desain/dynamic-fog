@@ -35,7 +35,7 @@ export class LightOverlayActor extends Actor {
     })
       .attachedTo(parent.id)
       .position(parent.position)
-      .disableAttachmentBehavior(["SCALE"])
+      .disableAttachmentBehavior(["SCALE", "COPY"])
       .maxViewScale(2)
       .locked(true)
       .visible(parent.visible)
