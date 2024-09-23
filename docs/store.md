@@ -34,6 +34,8 @@ A description of the settings are listed below:
 | Edge      | Whether the edge of the light should be solid or blurred                     |
 | Type      | Whether the light should be a primary or secondary light. More details below |
 
+To remove a light you can click the Remove Light button at the bottom of the Light Settings
+
 ## Add a Wall
 
 Walls are automatically created from the fog shapes of the native Owlbear Rodeo fog tools.
