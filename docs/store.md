@@ -19,7 +19,7 @@ Add walls, doors and lights for a simple dynamic fog experience
 
 To add a light you can select any image in a Scene and click the Add Light button in the context menu.
 
-![Add light context menu item](https://raw.githubusercontent.com/owlbear-rodeo/dynamic-fog/main/docs/add.jpg)
+![Add light context menu item](https://raw.githubusercontent.com/owlbear-rodeo/dynamic-fog/main/docs/light.jpg)
 
 Once added you can adjust your lights settings as needed using the Light Settings panel.
 
