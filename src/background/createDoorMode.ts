@@ -338,8 +338,9 @@ export function createDoorMode(CanvasKit: CanvasKit) {
         OBR.scene.items.updateItems([target.item], (items) => {
           const item = items[0];
           if (item) {
-            const metadata: Door[] | undefined =
-              item.metadata[getPluginId("doors")];
+            const metadata: Door[] | undefined = item.metadata[
+              getPluginId("doors")
+            ] as Door[];
             if (metadata && Array.isArray(metadata)) {
               metadata.push({ open: false, start, end });
             } else {
