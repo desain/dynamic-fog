@@ -109,7 +109,7 @@ function MenuControls({
 
   const values: Required<LightConfig> = {
     attenuationRadius: 12 * 150,
-    sourceRadius: 50,
+    sourceRadius: 25,
     falloff: 1,
     innerAngle: 360,
     outerAngle: 360,
