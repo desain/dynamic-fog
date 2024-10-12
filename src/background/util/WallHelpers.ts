@@ -9,6 +9,7 @@ import {
   Vector2,
 } from "@owlbear-rodeo/sdk";
 import { DoorComponent } from "../reconcile/actors/DoorActor";
+import simplify from "simplify-js";
 
 export class WallHelpers {
   /**
@@ -106,6 +107,8 @@ export class WallHelpers {
       contours.push(points);
     }
 
-    return contours;
+    const simplified = contours.map((points) => simplify(points));
+
+    return simplified;
   }
 }
