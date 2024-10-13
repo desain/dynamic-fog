@@ -32,7 +32,7 @@ export class WallActor extends Actor {
       return;
     }
     const prev = this.walls;
-    const next = WallHelpers.drawingToContours(
+    const next = WallHelpers.drawingToPolylines(
       parent,
       this.reconciler.CanvasKit,
       this.door.getDoors()
@@ -40,8 +40,8 @@ export class WallActor extends Actor {
     if (prev.length < next.length) {
       // Need to add more walls as there are new contours
       for (let i = prev.length; i < next.length; i++) {
-        const contour = next[i];
-        const wall = this.contourToWall(parent, contour);
+        const polyline = next[i];
+        const wall = this.polylineToWall(parent, polyline);
         prev.push(wall.id);
         this.reconciler.patcher.addItems(wall);
       }
@@ -54,12 +54,12 @@ export class WallActor extends Actor {
     // Update remaining walls
     for (let i = 0; i < prev.length; i++) {
       const wall = prev[i];
-      const contour = next[i];
+      const polyline = next[i];
       this.reconciler.patcher.updateItems([
         wall,
         (item) => {
           if (isWall(item)) {
-            item.points = contour;
+            item.points = polyline;
           }
         },
       ]);
@@ -69,20 +69,20 @@ export class WallActor extends Actor {
   private drawingToWalls(drawing: Drawing): Wall[] {
     const doors = this.door.getDoors();
     const walls: Wall[] = [];
-    const contours = WallHelpers.drawingToContours(
+    const polylines = WallHelpers.drawingToPolylines(
       drawing,
       this.reconciler.CanvasKit,
       doors
     );
-    for (const contour of contours) {
-      walls.push(this.contourToWall(drawing, contour));
+    for (const polyline of polylines) {
+      walls.push(this.polylineToWall(drawing, polyline));
     }
     return walls;
   }
 
-  private contourToWall(drawing: Drawing, contour: Vector2[]): Wall {
+  private polylineToWall(drawing: Drawing, polyline: Vector2[]): Wall {
     const wall = buildWall()
-      .points(contour)
+      .points(polyline)
       .attachedTo(drawing.id)
       .position(drawing.position)
       .rotation(drawing.rotation)

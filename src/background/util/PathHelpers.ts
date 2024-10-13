@@ -127,6 +127,70 @@ export class PathHelpers {
     return simplify(points);
   }
 
+  static commandsToPolylines(
+    CanvasKit: CanvasKit,
+    commands: PathCommand[],
+    sampleDistance: number
+  ) {
+    const contours: Vector2[][] = [];
+    // The points for this contour
+    let points: Vector2[] = [];
+    // The index into the commands array that this contour starts
+    let contourStartIndex = 0;
+    for (let index = 0; index < commands.length; index++) {
+      const command = commands[index];
+      const verb = command[0];
+
+      const prevIndex = Math.max(index - 1, contourStartIndex);
+      const prevCommand = commands[prevIndex];
+      const startCommand = commands[contourStartIndex];
+
+      switch (verb) {
+        case Command.MOVE:
+        case Command.LINE:
+          // Add the point directly
+          points.push(PathHelpers.getCommandPoint(command));
+          break;
+        case Command.QUAD:
+        case Command.CONIC:
+        case Command.CUBIC:
+          if (prevCommand) {
+            // Sample from the previous command to this command
+            const prevAnchorPoint = PathHelpers.getCommandPoint(prevCommand);
+            const subCommands: PathCommand[] = [
+              [Command.MOVE, prevAnchorPoint.x, prevAnchorPoint.y],
+              [...command],
+            ];
+            const samples = PathHelpers.samplePathCommands(
+              CanvasKit,
+              subCommands,
+              sampleDistance
+            );
+            points.push(...samples);
+          }
+          break;
+        case Command.CLOSE:
+          // Add a point back to the start and start a new contour
+          if (startCommand) {
+            points.push(PathHelpers.getCommandPoint(startCommand));
+          }
+          contours.push(points);
+          points = [];
+          contourStartIndex = index + 1;
+          break;
+      }
+    }
+
+    if (points.length > 0) {
+      // The contour didn't finish with a close command so use the remaining points
+      contours.push(points);
+    }
+
+    const simplified = contours.map((points) => simplify(points));
+
+    return simplified;
+  }
+
   static getSkPathIntersection(
     CanvasKit: CanvasKit,
     skPath: SkPath,
