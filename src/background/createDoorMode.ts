@@ -262,7 +262,11 @@ export function createDoorMode(CanvasKit: CanvasKit) {
       const door = await getAttachedDoor(event.target);
       if (door) {
         const [item, index] = door;
-        await toggleDoorOpen(item, index);
+        if (event.altKey) {
+          await deleteDoor(item, index);
+        } else {
+          await toggleDoorOpen(item, index);
+        }
       } else {
         const light = await getAttachedLight(event.target);
         if (light) {
