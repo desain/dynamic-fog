@@ -19,6 +19,18 @@ export function createLightMenu() {
           permissions: ["UPDATE"],
         },
       },
+      {
+        icon: lightOnIcon,
+        label: "Add Light",
+        filter: {
+          every: [
+            { key: "type", value: "SHAPE" },
+            { key: "shapeType", value: "CIRCLE" },
+            { key: ["metadata", getPluginId("light")], value: undefined },
+          ],
+          permissions: ["UPDATE"],
+        },
+      },
     ],
     async onClick(context) {
       const dpi = await OBR.scene.grid.getDpi();
