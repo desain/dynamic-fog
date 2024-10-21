@@ -18,7 +18,7 @@ export class CardinalSpline {
       const tensionPoints = this.getTensionPoints(p, tension, closed);
       const tensionLength = tensionPoints.length;
 
-      if (!closed) {
+      if (!closed && tensionLength > 1) {
         skPath.quadTo(
           tensionPoints[0].x,
           tensionPoints[0].y,
@@ -34,7 +34,7 @@ export class CardinalSpline {
         this.bezierCurveTo(skPath, cp1.x, cp1.y, cp2.x, cp2.y, p.x, p.y);
       }
 
-      if (!closed) {
+      if (!closed && tensionLength > 0) {
         skPath.quadTo(
           tensionPoints[tensionLength - 1].x,
           tensionPoints[tensionLength - 1].y,
@@ -146,6 +146,10 @@ export class CardinalSpline {
     const d12 = Math2.distance(p1, p2);
 
     const d = d01 + d12;
+    if (d <= 0) {
+      return [{ ...p0 }, { ...p0 }];
+    }
+
     const fa = (t * d01) / d;
     const fb = (t * d12) / d;
 
