@@ -49,7 +49,7 @@ export class WallHelpers {
     for (const polyline of lines) {
       skLines.addPoly(
         polyline.flatMap((p) => [p.x, p.y]),
-        false
+        true
       );
     }
     const transform = MathM.fromItem(drawing);
