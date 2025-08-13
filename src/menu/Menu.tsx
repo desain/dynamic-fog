@@ -22,6 +22,7 @@ import { LightSoft } from "./icons/LightSoft";
 import { LightHard } from "./icons/LightHard";
 import { LightPrimary } from "./icons/LightPrimary";
 import { LightSecondary } from "./icons/LightSecondary";
+import { Rotate } from "./icons/Rotate";
 
 const SmallLabel = styled(FormLabel)({
   fontSize: "0.75rem",
@@ -114,6 +115,7 @@ function MenuControls({
     innerAngle: 360,
     outerAngle: 360,
     lightType: "PRIMARY",
+    rotation: 0,
     ...config,
   };
 
@@ -163,6 +165,19 @@ function MenuControls({
       }
     });
   }
+
+  async function handleRotationChange(value: number) {
+    await OBR.scene.items.updateItems(items, (items) => {
+      for (const item of items) {
+        const config = item.metadata[getPluginId("light")];
+        if (isPlainObject(config)) {
+          config.rotation = value;
+        }
+      }
+    });
+  }
+
+  const isHalfAngle = angleValue === "HALF";
 
   return (
     <Stack px={2} py={1}>
@@ -253,25 +268,37 @@ function MenuControls({
           </ToggleButtonGroup>
         </FormControl>
       </Stack>
-      <Button
-        size="small"
-        fullWidth
-        onClick={async () => {
-          const selection = await OBR.player.getSelection();
-          if (!selection || selection.length === 0) {
-            return;
-          }
-          await OBR.scene.items.updateItems(selection, (items) => {
-            for (const item of items) {
-              delete item.metadata[getPluginId("light")];
+      <Stack gap={1} direction="row" alignItems="center">
+        {isHalfAngle && (
+          <Button
+            size="small"
+            fullWidth
+            onClick={() => handleRotationChange((values.rotation + 90) % 360)}
+            startIcon={<Rotate />}
+          >
+            Rotate
+          </Button>
+        )}
+        <Button
+          size="small"
+          fullWidth
+          onClick={async () => {
+            const selection = await OBR.player.getSelection();
+            if (!selection || selection.length === 0) {
+              return;
             }
-          });
-        }}
-        color="error"
-        startIcon={<LightOff />}
-      >
-        Remove Light
-      </Button>
+            await OBR.scene.items.updateItems(selection, (items) => {
+              for (const item of items) {
+                delete item.metadata[getPluginId("light")];
+              }
+            });
+          }}
+          color="error"
+          startIcon={<LightOff />}
+        >
+          Remove {isHalfAngle ? "" : "Light"}
+        </Button>
+      </Stack>
     </Stack>
   );
 }

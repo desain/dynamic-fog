@@ -7,4 +7,5 @@ export interface LightConfig {
   innerAngle?: number;
   outerAngle?: number;
   lightType?: LightType;
+  rotation?: number;
 }

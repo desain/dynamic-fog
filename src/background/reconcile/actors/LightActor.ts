@@ -29,7 +29,7 @@ export class LightActor extends Actor {
       this.light,
       (item) => {
         if (isLight(item)) {
-          this.applyLightConfig(item, config);
+          this.applyLightConfig(parent, item, config);
         }
       },
     ]);
@@ -49,12 +49,12 @@ export class LightActor extends Actor {
       .disableAttachmentBehavior(["SCALE", "COPY"])
       .build();
 
-    this.applyLightConfig(light, config);
+    this.applyLightConfig(parent, light, config);
 
     return light;
   }
 
-  private applyLightConfig(light: Light, config: LightConfig) {
+  private applyLightConfig(parent: Item, light: Light, config: LightConfig) {
     if (
       config.attenuationRadius !== undefined &&
       config.attenuationRadius !== light.attenuationRadius
@@ -88,6 +88,10 @@ export class LightActor extends Actor {
     ) {
       light.lightType = config.lightType;
     }
+    if (config.rotation !== undefined) {
+      light.rotation = parent.rotation + config.rotation;
+    }
+
     return light;
   }
 }
