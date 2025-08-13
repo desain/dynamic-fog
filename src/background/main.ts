@@ -5,6 +5,7 @@ import { createLightMenu } from "./createLightMenu";
 import { createDoorMode } from "./createDoorMode";
 import { Reconciler } from "./reconcile/Reconciler";
 import { LightReactor } from "./reconcile/reactors/LightReactor";
+import { SelfLightReactor } from "./reconcile/reactors/SelfLightReactor";
 import { DoorReactor } from "./reconcile/reactors/DoorReactor";
 import { WallReactor } from "./reconcile/reactors/WallReactor";
 import { initOverlay } from "./overlay";
@@ -25,6 +26,7 @@ async function init() {
   createDoorMode(CanvasKit);
   reconciler = new Reconciler(CanvasKit);
   reconciler.register(new LightReactor(reconciler));
+  reconciler.register(new SelfLightReactor(reconciler));
   reconciler.register(new DoorReactor(reconciler));
   reconciler.register(new WallReactor(reconciler));
   initOverlay(reconciler);
