@@ -1,6 +1,13 @@
 import { Item } from "@owlbear-rodeo/sdk";
-import { Reconciler } from "./Reconciler";
 import { Actor } from "./Actor";
+import { Reconciler } from "./Reconciler";
+
+// interface DiffInfo {
+//   item: Item;
+//   playerId: Player["id"];
+//   playerRole: Player["role"];
+//   walls: LineString[];
+// }
 
 /**
  * A Reactor is responsible for defining a filter of incoming shared items

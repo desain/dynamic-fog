@@ -1,10 +1,10 @@
 import OBR, {
-  buildLine,
-  InteractionManager,
-  Line,
-  Math2,
-  ToolEvent,
-  Vector2,
+    buildLine,
+    InteractionManager,
+    Line,
+    Math2,
+    ToolEvent,
+    Vector2,
 } from "@owlbear-rodeo/sdk";
 import { getPluginId } from "../util/getPluginId";
 

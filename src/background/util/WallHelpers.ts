@@ -1,8 +1,11 @@
+import { isShape, MathM, Vector2 } from "@owlbear-rodeo/sdk";
 import { CanvasKit } from "canvaskit-wasm";
 import { Drawing } from "../../types/Drawing";
-import { PathHelpers } from "./PathHelpers";
-import { isShape, MathM, Vector2 } from "@owlbear-rodeo/sdk";
 import { DoorComponent } from "../reconcile/actors/DoorActor";
+import { PathHelpers } from "./PathHelpers";
+
+type Position2 = [x: number, y: number];
+export type LineString = Position2[];
 
 export class WallHelpers {
   /**

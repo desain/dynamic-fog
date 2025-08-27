@@ -1,28 +1,32 @@
 import Button from "@mui/material/Button";
-import Stack from "@mui/material/Stack";
-import OBR, { GridScale, Item } from "@owlbear-rodeo/sdk";
-import { getPluginId } from "../util/getPluginId";
-
-import { LightOff } from "./icons/LightOff";
-import NumberField from "./util/NumberField";
-import { useEffect, useMemo, useState } from "react";
-import Skeleton from "@mui/material/Skeleton";
-import { getMetadata } from "../util/getMetadata";
-import { LightConfig } from "../types/LightConfig";
-import { isPlainObject } from "./util/isPlainObject";
-import InputAdornment from "@mui/material/InputAdornment";
-import styled from "@mui/material/styles/styled";
-import FormLabel from "@mui/material/FormLabel";
 import FormControl from "@mui/material/FormControl";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import FormLabel from "@mui/material/FormLabel";
+import InputAdornment from "@mui/material/InputAdornment";
+import Skeleton from "@mui/material/Skeleton";
+import Stack from "@mui/material/Stack";
+import styled from "@mui/material/styles/styled";
 import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import OBR, { GridScale, Item } from "@owlbear-rodeo/sdk";
+import { useEffect, useMemo, useState } from "react";
+import { LightConfig } from "../types/LightConfig";
+import { getMetadata } from "../util/getMetadata";
+import { getPluginId } from "../util/getPluginId";
+import { ColorInput } from "./ColorInput";
 import { LightFull } from "./icons/LightFull";
 import { LightHalf } from "./icons/LightHalf";
-import { LightSoft } from "./icons/LightSoft";
 import { LightHard } from "./icons/LightHard";
+import { LightOff } from "./icons/LightOff";
 import { LightPrimary } from "./icons/LightPrimary";
 import { LightSecondary } from "./icons/LightSecondary";
+import { LightSoft } from "./icons/LightSoft";
 import { Rotate } from "./icons/Rotate";
+import { isPlainObject } from "./util/isPlainObject";
+import NumberField from "./util/NumberField";
+
+import "../assets/style.css";
+import { OwnerOnly } from "./icons/OwnerOnly";
+import { PublicView } from "./icons/PublicView";
 
 const SmallLabel = styled(FormLabel)({
   fontSize: "0.75rem",
@@ -116,6 +120,8 @@ function MenuControls({
     outerAngle: 360,
     lightType: "PRIMARY",
     rotation: 0,
+    onlyVisibleToOwner: false,
+    color: "#000000",
     ...config,
   };
 
@@ -177,6 +183,28 @@ function MenuControls({
     });
   }
 
+  async function handleOwnerOnlyChange(value: boolean) {
+    await OBR.scene.items.updateItems(items, (items) => {
+      for (const item of items) {
+        const config = item.metadata[getPluginId("light")];
+        if (isPlainObject(config)) {
+          config.onlyVisibleToOwner = value;
+        }
+      }
+    });
+  }
+
+  async function handleColorChange(value: string) {
+    await OBR.scene.items.updateItems(items, (items) => {
+      for (const item of items) {
+        const config = item.metadata[getPluginId("light")];
+        if (isPlainObject(config)) {
+          config.color = value;
+        }
+      }
+    });
+  }
+
   const isHalfAngle = angleValue === "HALF";
 
   return (
@@ -230,7 +258,7 @@ function MenuControls({
           </ToggleButtonGroup>
         </FormControl>
       </Stack>
-      <Stack gap={1} direction="row" sx={{ mb: 2 }} alignItems="center">
+      <Stack gap={1} direction="row" sx={{ mb: 1 }} alignItems="center">
         <FormControl fullWidth>
           <SmallLabel>Edge</SmallLabel>
           <ToggleButtonGroup
@@ -267,6 +295,27 @@ function MenuControls({
             </ToggleButton>
           </ToggleButtonGroup>
         </FormControl>
+      </Stack>
+      <Stack gap={1} direction="row" sx={{ mb: 1 }} alignItems="center">
+        <FormControl fullWidth>
+          <SmallLabel>Owner Only</SmallLabel>
+          <ToggleButtonGroup
+            exclusive
+            aria-label="type"
+            size="small"
+            value={values.onlyVisibleToOwner ? "true" : "false"}
+            onChange={(_, v) => v && handleOwnerOnlyChange(v === "true")}
+            fullWidth
+          >
+            <ToggleButton value="true" aria-label="primary">
+              <OwnerOnly />
+            </ToggleButton>
+            <ToggleButton value="false" aria-label="secondary">
+              <PublicView />
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </FormControl>
+        <ColorInput value={values.color} onChange={handleColorChange} />
       </Stack>
       <Stack gap={1} direction="row" alignItems="center">
         {isHalfAngle && (
@@ -320,6 +369,10 @@ function FormControlSkeleton() {
 function MenuSkeleton() {
   return (
     <Stack px={2} py={1}>
+      <Stack gap={1} direction="row" sx={{ mb: 1 }} alignItems="center">
+        <FormControlSkeleton />
+        <FormControlSkeleton />
+      </Stack>
       <Stack gap={1} direction="row" sx={{ mb: 1 }} alignItems="center">
         <FormControlSkeleton />
         <FormControlSkeleton />

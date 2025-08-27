@@ -1,5 +1,5 @@
 {
-  "name": "dynamic-fog",
+  "name": "chromodynamic-fog",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -18,7 +18,9 @@
     "canvaskit-wasm": "^0.39.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "simplify-js": "^1.2.4"
+    "simplify-js": "^1.2.4",
+    "visibility-polygon": "^1.1.0",
+    "vite-plugin-mkcert": "^1.17.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

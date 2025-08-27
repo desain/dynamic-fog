@@ -8,4 +8,6 @@ export interface LightConfig {
   outerAngle?: number;
   lightType?: LightType;
   rotation?: number;
+  color?: string;
+  onlyVisibleToOwner?: boolean;
 }

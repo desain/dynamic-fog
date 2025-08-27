@@ -1,7 +1,7 @@
-import { Patcher } from "./Patcher";
-import { Reactor } from "./Reactor";
 import OBR, { Item } from "@owlbear-rodeo/sdk";
 import { CanvasKit } from "canvaskit-wasm";
+import { Patcher } from "./Patcher";
+import { Reactor } from "./Reactor";
 
 /**
  * The Reconciler is responsible for hooking into the shared scene item
@@ -19,6 +19,7 @@ import { CanvasKit } from "canvaskit-wasm";
  */
 export class Reconciler {
   CanvasKit: CanvasKit;
+
   private reactors: Reactor[] = [];
   private prevItems: Map<string, Item> = new Map();
 
@@ -46,6 +47,13 @@ export class Reconciler {
       reactor.delete();
     }
     this.patcher.submitChanges();
+  }
+
+  /**
+   * Update all reactors without a new item set.
+   */
+  refresh() {
+    this.reconcile([...this.prevItems.values()]);
   }
 
   private handleSceneReady = (ready: boolean) => {
@@ -114,6 +122,7 @@ export class Reconciler {
     this.patcher.submitChanges();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   find<R extends Reactor>(reactor: new (...args: any[]) => R): R | null {
     return (this.reactors.find((r) => r instanceof reactor) as R) ?? null;
   }

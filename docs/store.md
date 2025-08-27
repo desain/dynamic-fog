@@ -1,11 +1,10 @@
 ---
-title: Dynamic Fog
-description: Add walls, doors and lights for a simple dynamic fog experience
-author: Owlbear Rodeo
+title: Chromodynamic Fog
+description: Fork of the official Dynamic Fog extension that adds colored lights and per-player lights.
+author: desain
 image: https://raw.githubusercontent.com/owlbear-rodeo/dynamic-fog/main/docs/header.jpg
 icon: https://dynamic-fog.owlbear.rodeo/logo.png
 tags:
-  - built-by-owlbear
   - fog
 manifest: https://dynamic-fog.owlbear.rodeo/manifest.json
 learn-more: https://extensions.owlbear.rodeo/dynamic-fog
