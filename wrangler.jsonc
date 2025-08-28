@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "owlbear-chromodynamic-fog",
+  "compatibility_date": "2025-08-03",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./dist"
+    // "binding": "ASSETS"
+  }
+}
