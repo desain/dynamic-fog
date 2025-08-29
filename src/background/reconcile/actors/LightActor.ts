@@ -1,14 +1,16 @@
 import {
-  buildCurve,
   buildEffect,
   buildLight,
-  isCurve,
+  buildPath,
   isEffect,
   isLight,
+  isPath,
   Item,
   Light,
-  type Curve,
+  Math2,
   type Effect,
+  type Path,
+  type Vector2,
 } from "@owlbear-rodeo/sdk";
 import type { Vector3 } from "@owlbear-rodeo/sdk/lib/types/Vector3";
 import {
@@ -19,6 +21,8 @@ import {
 import { LightConfig } from "../../../types/LightConfig";
 import { getMetadata } from "../../../util/getMetadata";
 import { getPluginId } from "../../../util/getPluginId";
+import { CardinalSpline } from "../../util/CardinalSpline";
+import { PathHelpers } from "../../util/PathHelpers";
 import { Actor } from "../Actor";
 import { Reconciler } from "../Reconciler";
 import { LightReactor } from "../reactors/LightReactor";
@@ -81,7 +85,7 @@ export class LightActor extends Actor {
       [
         this.polygon,
         (item) => {
-          if (isCurve(item)) {
+          if (isPath(item)) {
             this.applyWalls(parent, item, config);
           }
         },
@@ -112,11 +116,9 @@ export class LightActor extends Actor {
       .build();
 
     const radius = config.attenuationRadius ?? 150;
-    const polygon = buildCurve()
+    const path = buildPath()
       .attachedTo(parent.id)
       .position(parent.position)
-      .closed(true)
-      .tension(0)
       .strokeOpacity(0)
       .fillOpacity(0)
       .locked(true)
@@ -131,7 +133,7 @@ export class LightActor extends Actor {
       .build();
 
     const effect = buildEffect()
-      .attachedTo(polygon.id)
+      .attachedTo(path.id)
       .disableHit(true)
       .effectType("ATTACHMENT")
       .uniforms([
@@ -177,10 +179,6 @@ export class LightActor extends Actor {
         uniform float ${RADIUS_UNIFORM};
 
         vec4 main(in float2 coord) {
-            if (${COLOR_UNIFORM} == vec3(0)) {
-                return vec4(0);
-            }
-
             float pct = min(1.0, length(coord) / ${RADIUS_UNIFORM});
             float o = 0.5 - pct/2.0;
             vec3 c = mix(vec3(1.0), ${COLOR_UNIFORM}, quadraticBezier(pct, vec2(0.2, 0.7)));
@@ -192,10 +190,10 @@ export class LightActor extends Actor {
       .build();
 
     this.applyLightConfig(parent, light, config);
-    this.applyWalls(parent, polygon, config);
+    this.applyWalls(parent, path, config);
     this.applyEffect(effect, config);
 
-    return [light, polygon, effect] as const;
+    return [light, path, effect] as const;
   }
 
   private applyLightConfig(parent: Item, light: Light, config: LightConfig) {
@@ -239,7 +237,10 @@ export class LightActor extends Actor {
     return light;
   }
 
-  private applyWalls(parent: Item, polygon: Curve, config: LightConfig) {
+  private applyWalls(parent: Item, path: Path, config: LightConfig) {
+    if (!config.color || config.color === "#000000") {
+      return;
+    }
     const walls = this.reconciler.find(LightReactor)?.walls ?? [];
     // Update visibility polygon
     const segments = breakIntersections(convertToSegments(walls));
@@ -250,10 +251,45 @@ export class LightActor extends Actor {
       [parent.position.x - radius, parent.position.y - radius],
       [parent.position.x + radius, parent.position.y + radius]
     );
-    polygon.points = viewportVisibility.map(([x, y]) => ({
-      x: x - parent.position.x,
-      y: y - parent.position.y,
-    }));
+
+    const visibilityPath = new this.reconciler.CanvasKit.Path();
+    CardinalSpline.addToSkPath(
+      visibilityPath,
+      viewportVisibility.map(([x, y]) => ({
+        x: x - parent.position.x,
+        y: y - parent.position.y,
+      })),
+      0,
+      true
+    );
+
+    if (config.outerAngle && config.outerAngle !== 360) {
+      const viewportClippingPath = new this.reconciler.CanvasKit.Path();
+      const angle = ((config.outerAngle ?? 360) * Math.PI) / 360;
+      const rotation = (config.rotation ?? 0) + parent.rotation;
+      const clipPoints: Vector2[] = [{ x: 0, y: 0 }];
+      const clipPointsCount = 10;
+      for (let i = 0; i <= clipPointsCount; i++) {
+        const pointAngle = ((2 * i) / clipPointsCount - 1) * angle;
+        clipPoints.push({
+          x: Math.sin(pointAngle) * radius * 1.5,
+          y: -Math.cos(pointAngle) * radius * 1.5,
+        });
+      }
+
+      CardinalSpline.addToSkPath(
+        viewportClippingPath,
+        clipPoints.map((p) => Math2.rotate(p, { x: 0, y: 0 }, rotation)),
+        0,
+        true
+      );
+      visibilityPath.op(
+        viewportClippingPath,
+        this.reconciler.CanvasKit.PathOp.Intersect
+      );
+    }
+
+    path.commands = PathHelpers.skPathToPathCommands(visibilityPath);
   }
 
   private applyEffect(effect: Effect, config: LightConfig) {
