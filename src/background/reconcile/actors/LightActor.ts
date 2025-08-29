@@ -182,12 +182,13 @@ export class LightActor extends Actor {
             }
 
             float pct = min(1.0, length(coord) / ${RADIUS_UNIFORM});
-            float o = 1.0 - quadraticBezier(pct, vec2(0.99, 0.99));
+            float o = 0.5 - pct/2.0;
             vec3 c = mix(vec3(1.0), ${COLOR_UNIFORM}, quadraticBezier(pct, vec2(0.2, 0.7)));
             return vec4(c, 1.0) * o;
         }`
       )
       .blendMode("HARD_LIGHT")
+      .layer("DRAWING")
       .build();
 
     this.applyLightConfig(parent, light, config);

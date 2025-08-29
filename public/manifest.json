@@ -5,6 +5,6 @@
   "author": "desain",
   "homepage_url": "https://github.com/desain/dynamic-fog",
   "icon": "/logo.png",
-  "description": "Fork of the official Dynamic Fog extension that adds colorful lights and lets you restrict lights to token owners.",
+  "description": "Fork of the official Dynamic Fog extension that adds colorful nonmoving lights and lets you restrict lights to token owners.",
   "background_url": "/background.html"
 }
