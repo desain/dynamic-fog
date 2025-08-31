@@ -134,6 +134,8 @@ export class LightActor extends Actor {
 
     const effect = buildEffect()
       .attachedTo(path.id)
+      .position(path.position)
+      .locked(true)
       .disableHit(true)
       .effectType("ATTACHMENT")
       .uniforms([
