@@ -8,6 +8,7 @@ import {
   Item,
   Light,
   Math2,
+  type AttachmentBehavior,
   type Effect,
   type Path,
   type Vector2,
@@ -23,12 +24,114 @@ import { getMetadata } from "../../../util/getMetadata";
 import { getPluginId } from "../../../util/getPluginId";
 import { CardinalSpline } from "../../util/CardinalSpline";
 import { PathHelpers } from "../../util/PathHelpers";
+import type { LineString } from "../../util/WallHelpers";
 import { Actor } from "../Actor";
 import { Reconciler } from "../Reconciler";
 import { LightReactor } from "../reactors/LightReactor";
 
 const COLOR_UNIFORM = "color";
 const RADIUS_UNIFORM = "radius";
+const OUTER_ANGLE_UNIFORM = "outerAngle";
+
+function getGlowSksl(walls?: LineString[]) {
+  const segments = walls?.flatMap((wall) =>
+    wall
+      .map((p, i) => {
+        const q = wall[i + 1];
+        return q ? ([p, q] as const) : null;
+      })
+      .filter((s) => s !== null)
+  );
+
+  const isect = segments
+    ?.map(
+      ([[px, py], [qx, qy]]) =>
+        `if (isect(position,w,vec2(${Math.round(px)},${Math.round(
+          py
+        )}),vec2(${Math.round(qx)},${Math.round(qy)}))) {return vec4(0);}`
+    )
+    .join("\n");
+
+  return `
+    const float PI = 3.1415926535897932384626433832795;
+    uniform vec2 position;
+    uniform float rotation; // max angle
+
+    uniform vec3 ${COLOR_UNIFORM};
+    uniform float ${RADIUS_UNIFORM};
+    uniform float ${OUTER_ANGLE_UNIFORM};
+
+    float quadraticBezier (float x, vec2 a){
+        float epsilon = 0.00001;
+        a.x = clamp(a.x,0.0,1.0);
+        a.y = clamp(a.y,0.0,1.0);
+        if (a.x == 0.5){
+            a += epsilon;
+        }
+
+        // solve t from x (an inverse operation)
+        float om2a = 1.0 - 2.0 * a.x;
+        float t = (sqrt(a.x*a.x + om2a*x) - a.x)/om2a;
+        float y = (1.0-2.0*a.y)*(t*t) + (2.0*a.y)*t;
+        return y;
+    }
+
+    float cross2(vec2 a, vec2 b) { return a.x*b.y - a.y*b.x; }
+    bool near(vec2 a, vec2 b, float eps) { return length(a - b) <= eps; }
+
+    bool isect(vec2 p0, vec2 p1, vec2 q0, vec2 q1) {
+        const float eps = 1e-6;
+
+        vec2 r = p1 - p0;
+        vec2 s = q1 - q0;
+        float rxs = cross2(r, s);
+        vec2 qp = q0 - p0;
+        float qpxr = cross2(qp, r);
+
+        // parallel
+        if (abs(rxs) < eps) {
+            // colinear
+            if (abs(qpxr) < eps) {
+                // unique endpoint touch?
+                if (near(p0, q0, eps) || near(p0, q1, eps)) { /*P = p0*/; return true; }
+                if (near(p1, q0, eps) || near(p1, q1, eps)) { /*P = p1*/; return true; }
+                // overlapping but not a single point -> no unique intersection
+                return false;
+            }
+            // parallel, disjoint
+            return false;
+        }
+
+        float t = cross2(qp, s) / rxs;
+        float u = cross2(qp, r) / rxs;
+
+        if (t >= -eps && t <= 1.0 + eps && u >= -eps && u <= 1.0 + eps) {
+            //P = p0 + t * r;
+            return true;
+        }
+        return false;
+    }
+
+    float anglediff(float src, float dst) { return mod(dst - src + 3*PI, 2*PI) - PI; }
+
+    vec4 main(in float2 coord) {
+        vec2 w = position + coord;
+
+        float angle = coord.y == 0 ? 0 : atan(-coord.x, -coord.y) + (rotation*PI/180.0);
+        if (abs(anglediff(angle, 0)) > ${OUTER_ANGLE_UNIFORM}) { return vec4(0); }
+
+        ${isect ?? ""}
+
+        float pct = min(1.0, length(coord) / ${RADIUS_UNIFORM});
+        float o = 0.5 - pct/2.0;
+        vec3 c = mix(vec3(1.0), ${COLOR_UNIFORM}, quadraticBezier(pct, vec2(0.2, 0.7)));
+        return vec4(c, 1.0) * o;
+    }`;
+}
+
+function getGlowPolygonDisableAttachmentBehavior(): AttachmentBehavior[] {
+  return ["SCALE", "COPY", "LOCKED", "ROTATION"];
+}
 
 function parseColor(color: string) {
   return /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color);
@@ -94,7 +197,7 @@ export class LightActor extends Actor {
         this.effect,
         (item) => {
           if (isEffect(item)) {
-            this.applyEffect(item, config);
+            this.applyEffect(parent, item, config);
           }
         },
       ]
@@ -123,20 +226,16 @@ export class LightActor extends Actor {
       .fillOpacity(0)
       .locked(true)
       .disableHit(true)
-      .disableAttachmentBehavior([
-        "SCALE",
-        "COPY",
-        "ROTATION",
-        "LOCKED",
-        "LOCKED",
-      ])
+      .disableAttachmentBehavior(getGlowPolygonDisableAttachmentBehavior())
       .build();
 
     const effect = buildEffect()
       .attachedTo(path.id)
       .position(path.position)
+      .rotation(parent.rotation)
       .locked(true)
       .disableHit(true)
+      .disableAttachmentBehavior(["SCALE", "COPY"])
       .effectType("ATTACHMENT")
       .uniforms([
         {
@@ -151,49 +250,18 @@ export class LightActor extends Actor {
             z: 0,
           },
         },
+        {
+          name: OUTER_ANGLE_UNIFORM,
+          value: 0,
+        },
       ])
-      .sksl(
-        `
-        // https://thebookofshaders.com/05/
-        // x from 0 to 1, a in the first quadrant unit square
-        // if x > 1, can return NaN
-        // output 0 to 1
-        float quadraticBezier (float x, vec2 a){
-            // adapted from BEZMATH.PS (1993)
-            // by Don Lancaster, SYNERGETICS Inc.
-            // http://www.tinaja.com/text/bezmath.html
-
-            float epsilon = 0.00001;
-            a.x = clamp(a.x,0.0,1.0);
-            a.y = clamp(a.y,0.0,1.0);
-            if (a.x == 0.5){
-                a += epsilon;
-            }
-
-            // solve t from x (an inverse operation)
-            float om2a = 1.0 - 2.0 * a.x;
-            float t = (sqrt(a.x*a.x + om2a*x) - a.x)/om2a;
-            float y = (1.0-2.0*a.y)*(t*t) + (2.0*a.y)*t;
-            return y;
-        }
-
-        uniform vec3 ${COLOR_UNIFORM};
-        uniform float ${RADIUS_UNIFORM};
-
-        vec4 main(in float2 coord) {
-            float pct = min(1.0, length(coord) / ${RADIUS_UNIFORM});
-            float o = 0.5 - pct/2.0;
-            vec3 c = mix(vec3(1.0), ${COLOR_UNIFORM}, quadraticBezier(pct, vec2(0.2, 0.7)));
-            return vec4(c, 1.0) * o;
-        }`
-      )
       .blendMode("HARD_LIGHT")
       .layer("DRAWING")
       .build();
 
     this.applyLightConfig(parent, light, config);
     this.applyWalls(parent, path, config);
-    this.applyEffect(effect, config);
+    this.applyEffect(parent, effect, config);
 
     return [light, path, effect] as const;
   }
@@ -243,61 +311,84 @@ export class LightActor extends Actor {
     if (!config.color || config.color === "#000000") {
       return;
     }
-    const walls = this.reconciler.find(LightReactor)?.walls ?? [];
-    // Update visibility polygon
-    const segments = breakIntersections(convertToSegments(walls));
+
     const radius = config.attenuationRadius ?? 150;
-    const viewportVisibility = computeViewport(
-      [parent.position.x, parent.position.y],
-      segments,
-      [parent.position.x - radius, parent.position.y - radius],
-      [parent.position.x + radius, parent.position.y + radius]
-    );
-
     const visibilityPath = new this.reconciler.CanvasKit.Path();
-    CardinalSpline.addToSkPath(
-      visibilityPath,
-      viewportVisibility.map(([x, y]) => ({
-        x: x - parent.position.x,
-        y: y - parent.position.y,
-      })),
-      0,
-      true
-    );
-
-    if (config.outerAngle && config.outerAngle !== 360) {
-      const viewportClippingPath = new this.reconciler.CanvasKit.Path();
-      const angle = ((config.outerAngle ?? 360) * Math.PI) / 360;
-      const rotation = (config.rotation ?? 0) + parent.rotation;
-      const clipPoints: Vector2[] = [{ x: 0, y: 0 }];
-      const clipPointsCount = 10;
-      for (let i = 0; i <= clipPointsCount; i++) {
-        const pointAngle = ((2 * i) / clipPointsCount - 1) * angle;
-        clipPoints.push({
-          x: Math.sin(pointAngle) * radius * 1.5,
-          y: -Math.cos(pointAngle) * radius * 1.5,
-        });
-      }
-
+    // Primary lights do collision in SKSL, so just do a square polygon
+    if (config.lightType === "PRIMARY") {
       CardinalSpline.addToSkPath(
-        viewportClippingPath,
-        clipPoints.map((p) => Math2.rotate(p, { x: 0, y: 0 }, rotation)),
+        visibilityPath,
+        [
+          { x: -radius, y: -radius },
+          { x: radius, y: -radius },
+          { x: radius, y: radius },
+          { x: -radius, y: radius },
+        ],
         0,
         true
       );
-      visibilityPath.op(
-        viewportClippingPath,
-        this.reconciler.CanvasKit.PathOp.Intersect
+    } else {
+      const walls = this.reconciler.find(LightReactor)?.walls ?? [];
+      // Update visibility polygon
+      const segments = breakIntersections(convertToSegments(walls));
+      const viewportVisibility = computeViewport(
+        [parent.position.x, parent.position.y],
+        segments,
+        [parent.position.x - radius, parent.position.y - radius],
+        [parent.position.x + radius, parent.position.y + radius]
       );
+
+      CardinalSpline.addToSkPath(
+        visibilityPath,
+        viewportVisibility.map(([x, y]) => ({
+          x: x - parent.position.x,
+          y: y - parent.position.y,
+        })),
+        0,
+        true
+      );
+
+      if (config.outerAngle && config.outerAngle !== 360) {
+        const viewportClippingPath = new this.reconciler.CanvasKit.Path();
+        const angle = ((config.outerAngle ?? 30) * Math.PI) / 360;
+        const rotation = (config.rotation ?? 0) + parent.rotation;
+        const clipPoints: Vector2[] = [{ x: 0, y: 0 }];
+        const clipPointsCount = 10;
+        for (let i = 0; i <= clipPointsCount; i++) {
+          const pointAngle = ((2 * i) / clipPointsCount - 1) * angle;
+          clipPoints.push({
+            x: Math.sin(pointAngle) * radius * 1.5,
+            y: -Math.cos(pointAngle) * radius * 1.5,
+          });
+        }
+
+        CardinalSpline.addToSkPath(
+          viewportClippingPath,
+          clipPoints.map((p) => Math2.rotate(p, { x: 0, y: 0 }, rotation)),
+          0,
+          true
+        );
+        visibilityPath.op(
+          viewportClippingPath,
+          this.reconciler.CanvasKit.PathOp.Intersect
+        );
+      }
     }
 
     path.commands = PathHelpers.skPathToPathCommands(visibilityPath);
   }
 
-  private applyEffect(effect: Effect, config: LightConfig) {
+  private applyEffect(parent: Item, effect: Effect, config: LightConfig) {
     const radius = config.attenuationRadius ?? 150;
 
-    // Update color and radius
+    const hardcodedWalls =
+      config.lightType === "PRIMARY"
+        ? this.reconciler.find(LightReactor)?.walls
+        : undefined;
+
+    effect.sksl = getGlowSksl(hardcodedWalls);
+    effect.rotation = parent.rotation + (config.rotation ?? 0);
+
     const colorUniform = effect.uniforms.find(
       (uniform) => uniform.name === COLOR_UNIFORM
     );
@@ -313,6 +404,15 @@ export class LightActor extends Actor {
     );
     if (radiusUniform) {
       radiusUniform.value = radius;
+    }
+
+    const outerAngleUniform = effect.uniforms.find(
+      (uniform) => uniform.name === OUTER_ANGLE_UNIFORM
+    );
+    if (outerAngleUniform) {
+      outerAngleUniform.value = config.outerAngle
+        ? (Math.PI * config.outerAngle) / 360
+        : Math.PI;
     }
   }
 }

@@ -89,7 +89,8 @@ export class LightReactor extends Reactor {
 
     this.walls = walls.map((wall) =>
       wall.points.map((pt) => {
-        const transformedPt = transformPoint(MathM.fromItem(wall), pt);
+        const transform = MathM.fromItem(wall);
+        const transformedPt = transformPoint(transform, pt);
         return [transformedPt.x, transformedPt.y] as const;
       })
     );
