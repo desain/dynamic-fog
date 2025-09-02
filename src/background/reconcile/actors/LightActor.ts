@@ -32,6 +32,10 @@ const RADIUS_UNIFORM = "radius";
 const OUTER_ANGLE_UNIFORM = "outerAngle";
 const ROTATION_UNIFORM = "configRotation";
 
+function isPrimaryLight(config: LightConfig) {
+  return config.lightType === undefined || config.lightType === "PRIMARY";
+}
+
 function getGlowSksl(walls: LineString[] | undefined) {
   const segments = walls?.flatMap((wall) =>
     wall
@@ -319,7 +323,7 @@ export class LightActor extends Actor {
     const radius = config.attenuationRadius ?? 150;
     const visibilityPath = new this.reconciler.CanvasKit.Path();
     // Primary lights do collision in SKSL, so just do a square polygon
-    if (config.lightType === "PRIMARY") {
+    if (isPrimaryLight(config)) {
       CardinalSpline.addToSkPath(
         visibilityPath,
         [
@@ -353,20 +357,19 @@ export class LightActor extends Actor {
       );
     }
 
-    path.rotation = config.lightType === "PRIMARY" ? parent.rotation : 0;
+    path.rotation = isPrimaryLight(config) ? parent.rotation : 0;
     path.commands = PathHelpers.skPathToPathCommands(visibilityPath);
   }
 
   private applyEffect(parent: Item, effect: Effect, config: LightConfig) {
     const radius = config.attenuationRadius ?? 150;
 
-    const hardcodedWalls =
-      config.lightType === "PRIMARY"
-        ? this.reconciler.find(LightReactor)?.walls
-        : undefined;
+    const hardcodedWalls = isPrimaryLight(config)
+      ? this.reconciler.find(LightReactor)?.walls
+      : undefined;
 
     effect.sksl = getGlowSksl(hardcodedWalls);
-    effect.rotation = config.lightType === "PRIMARY" ? parent.rotation : 0;
+    effect.rotation = isPrimaryLight(config) ? parent.rotation : 0;
 
     const colorUniform = effect.uniforms.find(
       (uniform) => uniform.name === COLOR_UNIFORM
