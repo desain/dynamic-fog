@@ -7,11 +7,9 @@ import {
   isPath,
   Item,
   Light,
-  Math2,
   type AttachmentBehavior,
   type Effect,
   type Path,
-  type Vector2,
 } from "@owlbear-rodeo/sdk";
 import type { Vector3 } from "@owlbear-rodeo/sdk/lib/types/Vector3";
 import {
@@ -32,8 +30,9 @@ import { LightReactor } from "../reactors/LightReactor";
 const COLOR_UNIFORM = "color";
 const RADIUS_UNIFORM = "radius";
 const OUTER_ANGLE_UNIFORM = "outerAngle";
+const ROTATION_UNIFORM = "configRotation";
 
-function getGlowSksl(walls?: LineString[]) {
+function getGlowSksl(walls: LineString[] | undefined) {
   const segments = walls?.flatMap((wall) =>
     wall
       .map((p, i) => {
@@ -55,11 +54,12 @@ function getGlowSksl(walls?: LineString[]) {
   return `
     const float PI = 3.1415926535897932384626433832795;
     uniform vec2 position;
-    uniform float rotation; // max angle
+    uniform float rotation;
 
     uniform vec3 ${COLOR_UNIFORM};
     uniform float ${RADIUS_UNIFORM};
     uniform float ${OUTER_ANGLE_UNIFORM};
+    uniform float ${ROTATION_UNIFORM};
 
     float quadraticBezier (float x, vec2 a){
         float epsilon = 0.00001;
@@ -111,14 +111,24 @@ function getGlowSksl(walls?: LineString[]) {
         }
         return false;
     }
+    
+    mat2 rotate(float angle) {
+        float c = cos(angle);
+        float s = sin(angle);
+        return mat2(
+            c,  s,    // first column
+            -s,  c   // second column
+        );
+    }
 
     float anglediff(float src, float dst) { return mod(dst - src + 3*PI, 2*PI) - PI; }
 
     vec4 main(in float2 coord) {
-        vec2 w = position + coord;
+        float rotationRadians = rotation*PI/180.0;
+        vec2 w = coord * rotate(-rotationRadians) + position;
 
-        float angle = coord.y == 0 ? 0 : atan(-coord.x, -coord.y) + (rotation*PI/180.0);
-        if (abs(anglediff(angle, 0)) > ${OUTER_ANGLE_UNIFORM}) { return vec4(0); }
+        float angle = coord.y == 0 ? 0 : atan(-coord.x, -coord.y);
+        if (abs(anglediff(angle, -${ROTATION_UNIFORM})) > ${OUTER_ANGLE_UNIFORM}) { return vec4(0); }
 
         ${isect ?? ""}
 
@@ -130,7 +140,7 @@ function getGlowSksl(walls?: LineString[]) {
 }
 
 function getGlowPolygonDisableAttachmentBehavior(): AttachmentBehavior[] {
-  return ["SCALE", "COPY", "LOCKED", "ROTATION"];
+  return ["SCALE", "COPY", "LOCKED"];
 }
 
 function parseColor(color: string) {
@@ -232,28 +242,22 @@ export class LightActor extends Actor {
     const effect = buildEffect()
       .attachedTo(path.id)
       .position(path.position)
-      .rotation(parent.rotation)
       .locked(true)
       .disableHit(true)
       .disableAttachmentBehavior(["SCALE", "COPY"])
       .effectType("ATTACHMENT")
       .uniforms([
-        {
-          name: RADIUS_UNIFORM,
-          value: radius,
-        },
+        { name: RADIUS_UNIFORM, value: radius },
         {
           name: COLOR_UNIFORM,
-          value: (config.color ? hexToRgb(config.color) : null) ?? {
+          value: {
             x: 0,
             y: 0,
             z: 0,
           },
         },
-        {
-          name: OUTER_ANGLE_UNIFORM,
-          value: 0,
-        },
+        { name: OUTER_ANGLE_UNIFORM, value: 0 },
+        { name: ROTATION_UNIFORM, value: 0 },
       ])
       .blendMode("HARD_LIGHT")
       .layer("DRAWING")
@@ -347,34 +351,9 @@ export class LightActor extends Actor {
         0,
         true
       );
-
-      if (config.outerAngle && config.outerAngle !== 360) {
-        const viewportClippingPath = new this.reconciler.CanvasKit.Path();
-        const angle = ((config.outerAngle ?? 30) * Math.PI) / 360;
-        const rotation = (config.rotation ?? 0) + parent.rotation;
-        const clipPoints: Vector2[] = [{ x: 0, y: 0 }];
-        const clipPointsCount = 10;
-        for (let i = 0; i <= clipPointsCount; i++) {
-          const pointAngle = ((2 * i) / clipPointsCount - 1) * angle;
-          clipPoints.push({
-            x: Math.sin(pointAngle) * radius * 1.5,
-            y: -Math.cos(pointAngle) * radius * 1.5,
-          });
-        }
-
-        CardinalSpline.addToSkPath(
-          viewportClippingPath,
-          clipPoints.map((p) => Math2.rotate(p, { x: 0, y: 0 }, rotation)),
-          0,
-          true
-        );
-        visibilityPath.op(
-          viewportClippingPath,
-          this.reconciler.CanvasKit.PathOp.Intersect
-        );
-      }
     }
 
+    path.rotation = config.lightType === "PRIMARY" ? parent.rotation : 0;
     path.commands = PathHelpers.skPathToPathCommands(visibilityPath);
   }
 
@@ -387,7 +366,7 @@ export class LightActor extends Actor {
         : undefined;
 
     effect.sksl = getGlowSksl(hardcodedWalls);
-    effect.rotation = parent.rotation + (config.rotation ?? 0);
+    effect.rotation = config.lightType === "PRIMARY" ? parent.rotation : 0;
 
     const colorUniform = effect.uniforms.find(
       (uniform) => uniform.name === COLOR_UNIFORM
@@ -413,6 +392,18 @@ export class LightActor extends Actor {
       outerAngleUniform.value = config.outerAngle
         ? (Math.PI * config.outerAngle) / 360
         : Math.PI;
+    }
+
+    const rotationUniform = effect.uniforms.find(
+      (uniform) => uniform.name === ROTATION_UNIFORM
+    );
+    if (rotationUniform) {
+      rotationUniform.value = config.rotation
+        ? (Math.PI * config.rotation) / 180
+        : 0;
+      if (config.lightType === "SECONDARY") {
+        rotationUniform.value += (parent.rotation * Math.PI) / 180;
+      }
     }
   }
 }
